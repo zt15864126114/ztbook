@@ -16,10 +16,38 @@ export function backupData() {
       backupTime: Date.now()
     }
     
+    // 检查是否有数据需要备份
+    if (!data.accounts?.length && !data.categories?.length) {
+      uni.showToast({
+        title: '暂无数据需要备份',
+        icon: 'none'
+      })
+      return false
+    }
+    
+    // 将数据转换为字符串
+    const backupString = JSON.stringify(data)
+    
+    // 保存备份
     uni.setStorageSync('backup_data', data)
+    
+    // 记录备份时间
+    uni.setStorageSync('lastBackupTime', Date.now())
+    
+    // 计算数据大小(以字符串长度估算)
+    const size = (backupString.length / 1024).toFixed(2)
+    uni.showToast({
+      title: `已备份 ${size}KB 数据`,
+      icon: 'success'
+    })
+    
     return true
   } catch (error) {
     console.error('备份失败:', error)
+    uni.showToast({
+      title: '备份失败: ' + error.message,
+      icon: 'error'
+    })
     return false
   }
 }

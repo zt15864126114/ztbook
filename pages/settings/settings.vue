@@ -95,18 +95,6 @@
 				/>
 			</view>
 			<view class="setting-item">
-				<text class="item-label">字体大小</text>
-				<view class="font-size-slider">
-					<slider 
-						:value="fontSize" 
-						@change="changeFontSize"
-						min="12"
-						max="20"
-						show-value
-					/>
-				</view>
-			</view>
-			<view class="setting-item">
 				<text class="item-label">列表动画</text>
 				<switch 
 					:checked="listAnimation" 
@@ -198,7 +186,6 @@ const budgetAlert = ref(uni.getStorageSync('budgetAlert') || false)
 
 // 深色模式
 const darkMode = ref(uni.getStorageSync('darkMode') || false)
-const fontSize = ref(uni.getStorageSync('fontSize') || 14)
 
 const cacheSize = ref('0.00MB')
 
@@ -283,14 +270,6 @@ function toggleDarkMode(e) {
 			selectedColor: '#3498db'
 		})
 	}
-}
-
-// 修改字体大小
-function changeFontSize(e) {
-	fontSize.value = e.detail.value
-	uni.setStorageSync('fontSize', fontSize.value)
-	// 应用字体大小
-	document.documentElement.style.fontSize = `${fontSize.value}px`
 }
 
 // 设置月度预算
@@ -402,13 +381,17 @@ function exportData() {
 // 备份数据
 function backupData(silent = false) {
 	try {
+		uni.showLoading({
+			title: '正在备份...'
+		})
+		
 		const success = backupDataUtil()
+		
+		uni.hideLoading()
+		
 		if (success) {
 			if (!silent) {
-				uni.showToast({
-					title: '备份成功',
-					icon: 'success'
-				})
+				// Toast 会在 backupDataUtil 中显示
 			}
 		} else {
 			throw new Error('备份失败')
@@ -781,15 +764,6 @@ function formatDateTime(date) {
 		align-items: center;
 		color: #666;
 		font-size: 28rpx;
-		
-		.version {
-			margin-right: 8rpx;
-		}
-		
-		&.disabled {
-			color: #999;
-			font-size: 28rpx;
-		}
 	}
 	
 	.iconfont {
@@ -800,15 +774,6 @@ function formatDateTime(date) {
 	
 	&:active {
 		background-color: #f9f9f9;
-	}
-}
-
-.font-size-slider {
-	flex: 1;
-	padding: 0 20rpx;
-	
-	.uni-slider {
-		margin: 0;
 	}
 }
 

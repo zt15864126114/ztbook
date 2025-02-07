@@ -9034,6 +9034,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
     return csv;
   }
   function backupData() {
+    var _a, _b;
     try {
       const data = {
         accounts: uni.getStorageSync("accounts"),
@@ -9049,10 +9050,28 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
         },
         backupTime: Date.now()
       };
+      if (!((_a = data.accounts) == null ? void 0 : _a.length) && !((_b = data.categories) == null ? void 0 : _b.length)) {
+        uni.showToast({
+          title: "暂无数据需要备份",
+          icon: "none"
+        });
+        return false;
+      }
+      const backupString = JSON.stringify(data);
       uni.setStorageSync("backup_data", data);
+      uni.setStorageSync("lastBackupTime", Date.now());
+      const size = (backupString.length / 1024).toFixed(2);
+      uni.showToast({
+        title: `已备份 ${size}KB 数据`,
+        icon: "success"
+      });
       return true;
     } catch (error) {
-      formatAppLog("error", "at utils/backup.js:22", "备份失败:", error);
+      formatAppLog("error", "at utils/backup.js:46", "备份失败:", error);
+      uni.showToast({
+        title: "备份失败: " + error.message,
+        icon: "error"
+      });
       return false;
     }
   }
@@ -9084,7 +9103,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
       }
       return true;
     } catch (error) {
-      formatAppLog("error", "at utils/backup.js:51", "恢复失败:", error);
+      formatAppLog("error", "at utils/backup.js:79", "恢复失败:", error);
       return false;
     }
   }
@@ -9095,7 +9114,6 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
       const accountStore2 = useAccountStore();
       const budgetAlert = vue.ref(uni.getStorageSync("budgetAlert") || false);
       const darkMode = vue.ref(uni.getStorageSync("darkMode") || false);
-      const fontSize = vue.ref(uni.getStorageSync("fontSize") || 14);
       const cacheSize = vue.ref("0.00MB");
       const categoryPopup = vue.ref(null);
       const autoBackup = vue.ref(uni.getStorageSync("autoBackup") || false);
@@ -9161,11 +9179,6 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
             selectedColor: "#3498db"
           });
         }
-      }
-      function changeFontSize(e2) {
-        fontSize.value = e2.detail.value;
-        uni.setStorageSync("fontSize", fontSize.value);
-        document.documentElement.style.fontSize = `${fontSize.value}px`;
       }
       function setMonthlyBudget() {
         uni.showModal({
@@ -9248,7 +9261,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
             }
           });
         } catch (error) {
-          formatAppLog("error", "at pages/settings/settings.vue:394", "导出失败:", error);
+          formatAppLog("error", "at pages/settings/settings.vue:373", "导出失败:", error);
           uni.showToast({
             title: "导出失败",
             icon: "error"
@@ -9257,19 +9270,19 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
       }
       function backupData$1(silent = false) {
         try {
+          uni.showLoading({
+            title: "正在备份..."
+          });
           const success = backupData();
+          uni.hideLoading();
           if (success) {
             if (!silent) {
-              uni.showToast({
-                title: "备份成功",
-                icon: "success"
-              });
             }
           } else {
             throw new Error("备份失败");
           }
         } catch (error) {
-          formatAppLog("error", "at pages/settings/settings.vue:417", "备份失败:", error);
+          formatAppLog("error", "at pages/settings/settings.vue:400", "备份失败:", error);
           if (!silent) {
             uni.showToast({
               title: "备份失败",
@@ -9294,7 +9307,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
                   icon: "success"
                 });
               } catch (error) {
-                formatAppLog("error", "at pages/settings/settings.vue:446", "清空数据失败:", error);
+                formatAppLog("error", "at pages/settings/settings.vue:429", "清空数据失败:", error);
                 uni.showToast({
                   title: "操作失败",
                   icon: "error"
@@ -9468,7 +9481,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
                   throw new Error("恢复失败");
                 }
               } catch (error) {
-                formatAppLog("error", "at pages/settings/settings.vue:655", "恢复失败:", error);
+                formatAppLog("error", "at pages/settings/settings.vue:638", "恢复失败:", error);
                 uni.showToast({
                   title: "恢复失败",
                   icon: "error"
@@ -9519,7 +9532,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
         const minute = date.getMinutes().toString().padStart(2, "0");
         return `${year}年${month}月${day}日 ${hour}:${minute}`;
       }
-      const __returned__ = { accountStore: accountStore2, budgetAlert, darkMode, fontSize, cacheSize, categoryPopup, autoBackup, currencyPopup, currencies, listAnimation, thousandsSeparator, toggleBudgetAlert, toggleDarkMode, changeFontSize, setMonthlyBudget, exportData, backupData: backupData$1, clearData, checkUpdate, showAbout, getCacheSize, clearCache, isBackupOutdated, showCategoryManager, closeCategoryManager, addCategory, editCategory, deleteCategory, restoreData: restoreData$1, toggleAutoBackup, showCurrencyPicker, closeCurrencyPicker, selectCurrency, toggleListAnimation, toggleThousandsSeparator, formatDateTime: formatDateTime2, get useAccountStore() {
+      const __returned__ = { accountStore: accountStore2, budgetAlert, darkMode, cacheSize, categoryPopup, autoBackup, currencyPopup, currencies, listAnimation, thousandsSeparator, toggleBudgetAlert, toggleDarkMode, setMonthlyBudget, exportData, backupData: backupData$1, clearData, checkUpdate, showAbout, getCacheSize, clearCache, isBackupOutdated, showCategoryManager, closeCategoryManager, addCategory, editCategory, deleteCategory, restoreData: restoreData$1, toggleAutoBackup, showCurrencyPicker, closeCurrencyPicker, selectCurrency, toggleListAnimation, toggleThousandsSeparator, formatDateTime: formatDateTime2, get useAccountStore() {
         return useAccountStore;
       }, ref: vue.ref, onMounted: vue.onMounted, get exportToCSV() {
         return exportToCSV;
@@ -9683,18 +9696,6 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
                   onChange: $setup.toggleDarkMode,
                   color: "#3498db"
                 }, null, 40, ["checked"])
-              ]),
-              vue.createElementVNode("view", { class: "setting-item" }, [
-                vue.createElementVNode("text", { class: "item-label" }, "字体大小"),
-                vue.createElementVNode("view", { class: "font-size-slider" }, [
-                  vue.createElementVNode("slider", {
-                    value: $setup.fontSize,
-                    onChange: $setup.changeFontSize,
-                    min: "12",
-                    max: "20",
-                    "show-value": ""
-                  }, null, 40, ["value"])
-                ])
               ]),
               vue.createElementVNode("view", { class: "setting-item" }, [
                 vue.createElementVNode("text", { class: "item-label" }, "列表动画"),
@@ -10653,8 +10654,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
     },
     onHide: function() {
       formatAppLog("log", "at App.vue:31", "App Hide");
-    },
-    methods: {}
+    }
   };
   const App = /* @__PURE__ */ _export_sfc(_sfc_main, [["__file", "D:/HBuilderProjects/ztbook/App.vue"]]);
   var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
