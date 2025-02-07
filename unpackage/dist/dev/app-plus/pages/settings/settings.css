@@ -103,6 +103,7 @@
   align-items: center;
   padding: 1rem 0.75rem;
   background-color: #fff;
+  transition: background-color 0.3s;
 }
 .setting-item[data-v-7fad0a1c]:not(:last-child) {
   border-bottom: 0.03125rem solid #f5f5f5;
@@ -110,6 +111,7 @@
 .setting-item .item-label[data-v-7fad0a1c] {
   font-size: 1rem;
   color: #333;
+  transition: color 0.3s;
 }
 .setting-item .item-label.danger[data-v-7fad0a1c] {
   color: #ff0000;
@@ -119,14 +121,23 @@
   align-items: center;
   color: #666;
   font-size: 0.875rem;
+  transition: color 0.3s;
+}
+.setting-item .item-value.amount[data-v-7fad0a1c] {
+  font-weight: 500;
+  color: #333;
 }
 .setting-item .iconfont[data-v-7fad0a1c] {
   font-size: 1rem;
   color: #999;
   margin-left: 0.25rem;
+  transition: transform 0.3s;
 }
 .setting-item[data-v-7fad0a1c]:active {
   background-color: #f9f9f9;
+}
+.setting-item:active .iconfont[data-v-7fad0a1c] {
+  transform: translateX(0.125rem);
 }
 .category-manager[data-v-7fad0a1c] {
   background-color: #fff;
@@ -150,11 +161,26 @@
   font-size: 1.25rem;
   color: #999;
   padding: 0 0.625rem;
+  transition: transform 0.3s;
+}
+.category-manager .popup-header .close[data-v-7fad0a1c]:active {
+  transform: rotate(90deg);
 }
 .category-manager .category-list[data-v-7fad0a1c] {
   flex: 1;
   padding: 0.625rem 0.9375rem;
   box-sizing: border-box;
+}
+.category-manager .category-list[data-v-7fad0a1c]::-webkit-scrollbar {
+  width: 4px;
+  background: transparent;
+}
+.category-manager .category-list[data-v-7fad0a1c]::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+.dark .category-manager .category-list[data-v-7fad0a1c]::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
 }
 .category-manager .category-list .category-item[data-v-7fad0a1c] {
   display: flex;
@@ -192,19 +218,24 @@
   min-width: 3.75rem;
   text-align: center;
 }
+.category-manager .category-list .category-item .actions uni-button[data-v-7fad0a1c]::after {
+  border: none;
+}
 .category-manager .category-list .category-item .actions uni-button.edit-btn[data-v-7fad0a1c] {
   color: #3498db;
-  background-color: #f0f9ff;
+  background-color: rgba(52, 152, 219, 0.1);
+  border-color: rgba(52, 152, 219, 0.5);
 }
 .category-manager .category-list .category-item .actions uni-button.edit-btn[data-v-7fad0a1c]:active {
   background-color: #e3f2fd;
 }
 .category-manager .category-list .category-item .actions uni-button.delete-btn[data-v-7fad0a1c] {
   color: #ff0000;
-  background-color: #fff0f0;
+  background-color: rgba(255, 0, 0, 0.1);
+  border-color: rgba(255, 0, 0, 0.5);
 }
 .category-manager .category-list .category-item .actions uni-button.delete-btn[data-v-7fad0a1c]:disabled {
-  opacity: 0.5;
+  border-color: rgba(255, 0, 0, 0.2);
 }
 .category-manager .category-list .category-item .actions uni-button.delete-btn[data-v-7fad0a1c]:active:not(:disabled) {
   background-color: #ffe6e6;
@@ -249,6 +280,17 @@
   max-height: calc(80vh - 3.125rem);
   padding: 0.625rem 0.9375rem;
 }
+.currency-picker .currency-list[data-v-7fad0a1c]::-webkit-scrollbar {
+  width: 4px;
+  background: transparent;
+}
+.currency-picker .currency-list[data-v-7fad0a1c]::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+.dark .currency-picker .currency-list[data-v-7fad0a1c]::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
 .currency-picker .currency-list .currency-item[data-v-7fad0a1c] {
   display: flex;
   align-items: center;
@@ -281,4 +323,83 @@
 }
 .picker .picker-value .iconfont[data-v-7fad0a1c] {
   margin-left: 0.25rem;
+}
+.dark .section[data-v-7fad0a1c] {
+  background-color: #2d2d2d;
+}
+.dark .section .section-title[data-v-7fad0a1c] {
+  color: #888;
+  border-bottom-color: #3d3d3d;
+}
+.dark .setting-item[data-v-7fad0a1c] {
+  background-color: #2d2d2d;
+  border-bottom-color: #3d3d3d;
+}
+.dark .setting-item .item-label[data-v-7fad0a1c] {
+  color: #fff;
+}
+.dark .setting-item .item-label.danger[data-v-7fad0a1c] {
+  color: #ff6b6b;
+}
+.dark .setting-item .item-value[data-v-7fad0a1c] {
+  color: #aaa;
+}
+.dark .setting-item[data-v-7fad0a1c]:active {
+  background-color: #333;
+}
+.dark .setting-item[data-v-7fad0a1c] .uni-switch-input {
+  background-color: #444 !important;
+}
+.dark .setting-item[data-v-7fad0a1c] .uni-switch-input.uni-switch-input-checked {
+  background-color: #3498db !important;
+}
+.dark .category-manager[data-v-7fad0a1c],
+.dark .currency-picker[data-v-7fad0a1c] {
+  background-color: #2d2d2d;
+}
+.dark .category-manager .popup-header[data-v-7fad0a1c],
+.dark .currency-picker .popup-header[data-v-7fad0a1c] {
+  border-bottom-color: #3d3d3d;
+}
+.dark .category-manager .popup-header .title[data-v-7fad0a1c],
+.dark .currency-picker .popup-header .title[data-v-7fad0a1c] {
+  color: #fff;
+}
+.dark .category-manager .popup-header .close[data-v-7fad0a1c],
+.dark .currency-picker .popup-header .close[data-v-7fad0a1c] {
+  color: #888;
+}
+.dark .category-manager .category-item[data-v-7fad0a1c],
+.dark .category-manager .currency-item[data-v-7fad0a1c],
+.dark .currency-picker .category-item[data-v-7fad0a1c],
+.dark .currency-picker .currency-item[data-v-7fad0a1c] {
+  border-bottom-color: #3d3d3d;
+}
+.dark .category-manager .category-item .name[data-v-7fad0a1c],
+.dark .category-manager .currency-item .name[data-v-7fad0a1c],
+.dark .currency-picker .category-item .name[data-v-7fad0a1c],
+.dark .currency-picker .currency-item .name[data-v-7fad0a1c] {
+  color: #fff;
+}
+.dark .category-manager .category-item .code[data-v-7fad0a1c],
+.dark .category-manager .currency-item .code[data-v-7fad0a1c],
+.dark .currency-picker .category-item .code[data-v-7fad0a1c],
+.dark .currency-picker .currency-item .code[data-v-7fad0a1c] {
+  color: #888;
+}
+.dark .category-manager .category-item[data-v-7fad0a1c]:active,
+.dark .category-manager .currency-item[data-v-7fad0a1c]:active,
+.dark .currency-picker .category-item[data-v-7fad0a1c]:active,
+.dark .currency-picker .currency-item[data-v-7fad0a1c]:active {
+  background-color: #333;
+}
+.dark .category-manager .category-item.active[data-v-7fad0a1c],
+.dark .category-manager .currency-item.active[data-v-7fad0a1c],
+.dark .currency-picker .category-item.active[data-v-7fad0a1c],
+.dark .currency-picker .currency-item.active[data-v-7fad0a1c] {
+  color: #3498db;
+}
+.dark .category-manager .add-category[data-v-7fad0a1c],
+.dark .currency-picker .add-category[data-v-7fad0a1c] {
+  color: #3498db;
 }

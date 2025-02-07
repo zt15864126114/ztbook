@@ -1,5 +1,5 @@
 <template>
-	<view class="container">
+	<view :class="['container', darkMode ? 'dark' : '']">
 		<!-- 月份选择器 -->
 		<view class="month-header">
 			<view class="month-picker" @click="showMonthPicker">
@@ -36,6 +36,9 @@
 							:opts="pieOpts"
 							:chartData="pieData"
 							canvasId="pieChart"
+							:background="darkMode ? '#1e1e1e' : '#ffffff'"
+							:onInit="onPieChartInit"
+							:disableScroll="true"
 						/>
 					</view>
 				</view>
@@ -114,6 +117,9 @@
 							:opts="trendOpts"
 							:chartData="trendData"
 							canvasId="trendChart"
+							:background="darkMode ? '#1e1e1e' : '#ffffff'"
+							:onInit="onTrendChartInit"
+							:disableScroll="true"
 						/>
 					</view>
 				</view>
@@ -128,12 +134,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useAccountStore } from '@/stores/account'
+import { useAppStore } from '@/stores/app'
 import { formatDate, getCurrentMonth, getCurrentYear } from '@/utils/date'
 
 const accountStore = useAccountStore()
+const appStore = useAppStore()
+const darkMode = computed(() => appStore.darkMode)
 const statusBarHeight = ref(0)
 const safeAreaBottom = ref(0)
 const selectedYear = ref(getCurrentYear())
@@ -260,30 +269,42 @@ function showMonthPicker() {
 
 // 饼图配置
 const pieOpts = computed(() => ({
-	padding: [5, 15, 15, 5],
+	padding: [0, 0, 0, 0],
 	legend: {
 		show: true,
 		position: 'right',
-		lineHeight: 20,
-		float: 'center',
-		padding: 15,
-		margin: 5,
-		fontSize: 12
+		lineHeight: 25,
+		color: darkMode.value ? '#eee' : '#333',
+		backgroundColor: 'transparent',
+		padding: 10,
+		format: '{name}'
 	},
 	series: {
 		radius: ['60%', '85%'],
-		center: ['35%', '50%'],
+		center: ['40%', '50%'],
 		avoidLabelOverlap: true,
-		roseType: false
+		roseType: false,
+		backgroundColor: darkMode.value ? '#1e1e1e' : '#ffffff'
 	},
 	extra: {
 		pie: {
-			labelLine: false,
+			activeOpacity: 0.5,
 			activeRadius: 10,
 			offsetAngle: 0,
 			labelWidth: 15,
 			border: false,
-			linearType: 'custom'
+			linearType: 'custom',
+			radius: 0.8,
+			labelLine: false,
+			activeRadius: 8,
+			activeOpacity: 0.7,
+			customColor: darkMode.value ? [
+				'#3498db', '#e74c3c', '#2ecc71',
+				'#f1c40f', '#9b59b6', '#1abc9c'
+			] : [
+				'#3498db', '#e74c3c', '#2ecc71',
+				'#f1c40f', '#9b59b6', '#1abc9c'
+			]
 		},
 		tooltip: {
 			showBox: true,
@@ -291,9 +312,9 @@ const pieOpts = computed(() => ({
 			showCategory: false,
 			borderWidth: 0,
 			borderRadius: 4,
-			borderColor: '#000000',
-			backgroundColor: 'rgba(0,0,0,0.7)',
-			fontColor: '#ffffff',
+			borderColor: darkMode.value ? '#ffffff' : '#000000',
+			backgroundColor: darkMode.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.7)',
+			fontColor: darkMode.value ? '#eee' : '#ffffff',
 			fontSize: 12,
 			format: (item) => {
 				if (!item.data) return '无支出'
@@ -460,14 +481,17 @@ function getYearlyTrendData() {
 
 // 趋势图配置
 const trendOpts = computed(() => ({
-	padding: [15, 15, 15, 15],
+	padding: [10, 15, 15, 15],
+	background: darkMode.value ? '#1e1e1e' : '#ffffff',
 	xAxis: {
 		disableGrid: true,
 		itemCount: currentTrendType.value === 'day' ? 31 : 12,
 		labelCount: currentTrendType.value === 'day' ? 7 : 6,
 		fontSize: 11,
-		color: '#666666',
-		rotateLabel: true
+		color: darkMode.value ? '#888' : '#666666',
+		rotateLabel: true,
+		gridColor: darkMode.value ? '#2d2d2d' : '#f5f5f5',
+		gridType: 'dash',
 	},
 	yAxis: {
 		gridType: 'dash',
@@ -477,20 +501,21 @@ const trendOpts = computed(() => ({
 		max: 'auto',
 		format: val => accountStore.currencySymbol + Number(val).toFixed(0),
 		fontSize: 11,
-		color: '#666666',
-		boundaryGap: ['20%', '20%']
+		color: darkMode.value ? '#888' : '#666666',
+		boundaryGap: ['20%', '20%'],
+		gridColor: darkMode.value ? '#2d2d2d' : '#f5f5f5',
 	},
 	extra: {
 		column: {
 			type: 'group',
 			width: 20,
-			activeBgColor: '#000000',
+			activeBgColor: darkMode.value ? '#ffffff' : '#000000',
 			activeBgOpacity: 0.08,
 			seriesGap: 2,
 			barBorderRadius: [4, 4, 0, 0],
 			linearType: 'custom',
 			gradient: true,
-			color: ['#3498db', '#2980b9']
+			color: darkMode.value ? ['#3498db', '#1a5276'] : ['#3498db', '#2980b9']
 		},
 		tooltip: {
 			showBox: true,
@@ -498,9 +523,9 @@ const trendOpts = computed(() => ({
 			showCategory: false,
 			borderWidth: 0,
 			borderRadius: 4,
-			borderColor: '#000000',
-			backgroundColor: 'rgba(0,0,0,0.7)',
-			fontColor: '#ffffff',
+			borderColor: darkMode.value ? '#ffffff' : '#000000',
+			backgroundColor: darkMode.value ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.7)',
+			fontColor: darkMode.value ? '#eee' : '#ffffff',
 			fontSize: 12,
 			format: (item, category) => {
 				if (!item.data) return `${category}\n无支出`
@@ -509,6 +534,83 @@ const trendOpts = computed(() => ({
 		}
 	}
 }))
+
+// 设置图表主题
+const chartTheme = computed(() => {
+	return darkMode.value ? {
+		backgroundColor: 'transparent',
+		textStyle: {
+			color: '#eee'
+		},
+		title: {
+			textStyle: {
+				color: '#eee'
+			}
+		},
+		legend: {
+			textStyle: {
+				color: '#eee'
+			}
+		},
+		xAxis: {
+			axisLine: {
+				lineStyle: {
+					color: '#333'
+				}
+			},
+			axisLabel: {
+				color: '#888'
+			}
+		},
+		yAxis: {
+			axisLine: {
+				lineStyle: {
+					color: '#333'
+				}
+			},
+			axisLabel: {
+				color: '#888'
+			}
+		}
+	} : {}
+})
+
+// 在图表配置中使用主题
+const pieChartOptions = computed(() => ({
+	...chartTheme.value,
+	series: [
+		// ... 其他配置
+	]
+}))
+
+const lineChartOptions = computed(() => ({
+	...chartTheme.value,
+	series: [
+		// ... 其他配置
+	]
+}))
+
+// 添加图表初始化函数
+const pieChartRef = ref(null)
+const trendChartRef = ref(null)
+
+function onPieChartInit(chart) {
+	pieChartRef.value = chart
+	setTimeout(() => {
+		if (pieChartRef.value) {
+			pieChartRef.value.updateData(pieData.value)
+		}
+	}, 100)
+}
+
+function onTrendChartInit(chart) {
+	trendChartRef.value = chart
+	setTimeout(() => {
+		if (trendChartRef.value) {
+			trendChartRef.value.updateData(trendData.value)
+		}
+	}, 100)
+}
 
 onMounted(() => {
 	uni.getSystemInfo({
@@ -523,8 +625,40 @@ onMounted(() => {
 
 // 监听数据变化
 watch([categoryRanking, trendData], () => {
-	// 更新图表数据
+	nextTick(() => {
+		setTimeout(() => {
+			if (pieChartRef.value) {
+				pieChartRef.value.updateData({
+					series: [{
+						data: categoryRanking.value.map(item => ({
+							name: item.name,
+							value: Number(item.amount),
+							color: item.color
+						}))
+					}]
+				})
+			}
+			
+			if (trendChartRef.value) {
+				trendChartRef.value.updateData(trendData.value)
+			}
+		}, 100)
+	})
 })
+
+// 监听深色模式变化
+watch(() => darkMode.value, () => {
+	nextTick(() => {
+		setTimeout(() => {
+			if (pieChartRef.value) {
+				pieChartRef.value.updateData(pieData.value)
+			}
+			if (trendChartRef.value) {
+				trendChartRef.value.updateData(trendData.value)
+			}
+		}, 100)
+	})
+}, { immediate: true })
 
 // 显示分类详情
 function showCategoryDetail(category) {
@@ -557,10 +691,170 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .container {
-	display: flex;
-	flex-direction: column;
-	height: 100vh;
-	background-color: #f7f8fa;
+	min-height: 100vh;
+	background-color: #f5f5f5;
+	padding: 20rpx;
+	transition: background-color 0.3s;
+	
+	&.dark {
+		background-color: #121212;
+		
+		.month-header {
+			background-color: #1e1e1e;
+			box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+			
+			.month-picker {
+				.date-wrapper {
+					.year, .month {
+						color: #eee;
+					}
+				}
+				
+				.arrow {
+					color: #888;
+				}
+			}
+			
+			.total {
+				.label {
+					color: #888;
+				}
+				
+				.amount {
+					color: #eee;
+				}
+			}
+		}
+		
+		.statistics-content {
+			background-color: #121212;
+			
+			.chart-section, 
+			.ranking-section, 
+			.trend-section {
+				background-color: #1e1e1e;
+				box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+				
+				.section-header {
+					.title {
+						color: #eee;
+					}
+					
+					.subtitle {
+						color: #888;
+						
+						.dot {
+							background-color: #3498db;
+						}
+					}
+					
+					.trend-tabs {
+						background-color: #2d2d2d;
+						border-radius: 8rpx;
+						padding: 4rpx;
+						
+						.tab-item {
+							color: #888;
+							background-color: transparent;
+							
+							&.active {
+								color: #3498db;
+								background-color: #1e1e1e;
+							}
+						}
+					}
+					
+					.trend-overview {
+						.overview-item {
+							background-color: #2d2d2d;
+							border-radius: 8rpx;
+							padding: 16rpx 24rpx;
+						}
+					}
+				}
+				
+				.ranking-list {
+					.ranking-item {
+						border-bottom: 1rpx solid #2d2d2d;
+						
+						.rank-info {
+							.rank-number {
+								color: #888;
+							}
+							
+							.category-icon {
+								box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.3);
+							}
+							
+							.category-detail {
+								.name {
+									color: #eee;
+								}
+								
+								.amount {
+									color: #888;
+								}
+							}
+						}
+						
+						.progress-bar {
+							background-color: #2d2d2d;
+						}
+						
+						.percentage {
+							color: #888;
+						}
+						
+						&:active {
+							background-color: #2a2a2a;
+						}
+						
+						&:last-child {
+							border-bottom: none;
+						}
+					}
+				}
+				
+				:deep(.charts-box) {
+					background-color: #1e1e1e !important;
+					margin: 0 !important;
+					padding: 0 !important;
+					
+					.qiun-charts {
+						background-color: #1e1e1e !important;
+						width: 100% !important;
+						height: 100% !important;
+						
+						canvas {
+							background-color: #1e1e1e !important;
+							width: 100% !important;
+							height: 100% !important;
+						}
+					}
+					
+					.qiun-title,
+					.qiun-legend {
+						background-color: #1e1e1e !important;
+					}
+					
+					.qiun-loading {
+						background-color: #1e1e1e !important;
+					}
+				}
+			}
+			
+			.empty-state {
+				.empty-text {
+					color: #888;
+				}
+				
+				.add-btn {
+					background: linear-gradient(135deg, #3498db, #1a5276);
+					box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.4);
+				}
+			}
+		}
+	}
 }
 
 .month-header {
@@ -733,8 +1027,15 @@ onShow(() => {
 }
 
 .pie-chart, .trend-chart {
-	height: 460rpx;
+	margin: 0;
+	padding: 0;
 	width: 100%;
+	height: 400rpx;
+	background-color: transparent;
+	
+	:deep(.charts-box) {
+		background-color: inherit;
+	}
 }
 
 .trend-section {
@@ -774,8 +1075,8 @@ onShow(() => {
 		display: flex;
 		align-items: center;
 		margin: 16rpx 0;
-		padding: 16rpx 24rpx;
-		background-color: #f8f9fa;
+		padding: 16rpx 0;
+		background-color: transparent;
 		border-radius: 12rpx;
 		
 		.overview-item {
@@ -783,15 +1084,15 @@ onShow(() => {
 			display: flex;
 			flex-direction: column;
 			align-items: center;
-			
-			&:not(:last-child) {
-				border-right: 2rpx solid rgba(0,0,0,0.05);
-			}
+			background-color: #f5f5f5;
+			padding: 20rpx;
+			border-radius: 12rpx;
+			margin: 0 8rpx;
 			
 			.label {
 				font-size: 24rpx;
 				color: #666;
-				margin-bottom: 4rpx;
+				margin-bottom: 8rpx;
 			}
 			
 			.value {

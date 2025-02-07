@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view :class="['container', darkMode ? 'dark' : '']">
     <!-- 金额输入区 -->
     <view class="amount-section">
       <text class="currency">{{ accountStore.currencySymbol }}</text>
@@ -126,10 +126,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAccountStore } from '@/stores/account'
+import { useAppStore } from '@/stores/app'
 import { formatDate, formatTime } from '@/utils/date'
 
 const accountStore = useAccountStore()
+const appStore = useAppStore()
 const tagPopup = ref(null)
+const darkMode = computed(() => appStore.darkMode)
 
 // 表单数据
 const form = ref({
@@ -267,6 +270,11 @@ function handleSubmit() {
   min-height: 100vh;
   background-color: #f5f5f5;
   padding-bottom: 120rpx;
+  transition: background-color 0.3s;
+  
+  &.dark {
+    background-color: #121212;
+  }
 }
 
 .amount-section {
@@ -274,6 +282,12 @@ function handleSubmit() {
   padding: 40rpx;
   display: flex;
   align-items: center;
+  transition: background-color 0.3s;
+  
+  &.dark {
+    background-color: #1e1e1e;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+  }
   
   .currency {
     font-size: 48rpx;
@@ -285,6 +299,12 @@ function handleSubmit() {
     flex: 1;
     font-size: 60rpx;
     font-weight: bold;
+    text-align: center;
+    padding: 20rpx 0;
+    
+    &.dark {
+      color: #eee;
+    }
   }
 }
 
@@ -292,6 +312,12 @@ function handleSubmit() {
   background-color: #fff;
   margin-top: 20rpx;
   padding: 30rpx;
+  transition: background-color 0.3s;
+  
+  &.dark {
+    background-color: #1e1e1e;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+  }
   
   .section-title {
     font-size: 28rpx;
@@ -313,6 +339,10 @@ function handleSubmit() {
       &.active {
         background-color: #f0f9ff;
         border-radius: 12rpx;
+        
+        &.dark {
+          background-color: rgba(52, 152, 219, 0.2);
+        }
       }
       
       .icon {
@@ -323,12 +353,19 @@ function handleSubmit() {
         align-items: center;
         justify-content: center;
         font-size: 32rpx;
-        margin-bottom: 10rpx;
+        
+        &.dark {
+          box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
+        }
       }
       
       .name {
         font-size: 24rpx;
         color: #333;
+        
+        &.dark {
+          color: #eee;
+        }
       }
     }
   }
@@ -338,6 +375,12 @@ function handleSubmit() {
   background-color: #fff;
   margin-top: 20rpx;
   padding: 0 30rpx;
+  transition: background-color 0.3s;
+  
+  &.dark {
+    background-color: #1e1e1e;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+  }
   
   .form-item {
     display: flex;
@@ -353,6 +396,10 @@ function handleSubmit() {
       width: 120rpx;
       font-size: 28rpx;
       color: #333;
+      
+      &.dark {
+        color: #eee;
+      }
     }
     
     .input, .picker {
@@ -408,6 +455,12 @@ function handleSubmit() {
   padding: 20rpx;
   background-color: #fff;
   box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.05);
+  transition: background-color 0.3s;
+  
+  &.dark {
+    background-color: #1e1e1e;
+    box-shadow: 0 -2rpx 10rpx rgba(255,255,255,0.05);
+  }
   
   .submit-btn {
     background: linear-gradient(135deg, #3498db, #2980b9);
@@ -418,12 +471,23 @@ function handleSubmit() {
     &:disabled {
       opacity: 0.6;
     }
+    
+    &.dark {
+      background: linear-gradient(135deg, #3498db, #1a5276);
+      box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.4);
+    }
   }
 }
 
 .tag-picker {
   background-color: #fff;
   border-radius: 24rpx 24rpx 0 0;
+  transition: background-color 0.3s;
+  
+  &.dark {
+    background-color: #1e1e1e;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+  }
   
   .picker-header {
     display: flex;

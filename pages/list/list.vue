@@ -1,5 +1,5 @@
 <template>
-	<view class="container">
+	<view :class="['container', darkMode ? 'dark' : '']">
 		<!-- 月份选择器 -->
 		<view class="month-header">
 			<view class="month-picker">
@@ -62,13 +62,16 @@
 import { ref, computed, onMounted } from 'vue'
 import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { useAccountStore } from '@/stores/account'
+import { useAppStore } from '@/stores/app'
 import { formatDate, formatTime, getCurrentYear, getCurrentMonth } from '@/utils/date'
 
 const accountStore = useAccountStore()
+const appStore = useAppStore()
 const statusBarHeight = ref(0)
 const safeAreaBottom = ref(0)
 const selectedYear = ref(getCurrentYear())
 const selectedMonth = ref(getCurrentMonth())
+const darkMode = computed(() => appStore.darkMode)
 
 // 获取本月账单
 const monthlyBills = computed(() => {
@@ -240,185 +243,262 @@ onPullDownRefresh(async () => {
 <style lang="scss" scoped>
 .container {
 	min-height: 100vh;
-	background-color: #f7f8fa;
-	display: flex;
-	flex-direction: column;
-}
-
-.month-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 24rpx 32rpx;
-	background-color: #fff;
+	background-color: #f5f5f5;
+	padding: 20rpx;
+	transition: background-color 0.3s;
 	
-	.month-picker {
-		display: flex;
-		align-items: baseline;
+	&.dark {
+		background-color: #121212;
 		
-		.year {
-			font-size: 32rpx;
-			color: #333;
-			margin-right: 8rpx;
-		}
-		
-		.month {
-			font-size: 40rpx;
-			font-weight: bold;
-			color: #333;
-			margin-right: 8rpx;
-		}
-		
-		.arrow {
-			font-size: 24rpx;
-			color: #666;
-		}
-	}
-	
-	.total {
-		text-align: right;
-		
-		text {
-			font-size: 28rpx;
-			color: #333;
+		.month-header {
+			background-color: #1e1e1e;
+			box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
 			
-			&.amount {
-				margin-left: 8rpx;
-				font-size: 32rpx;
-				font-weight: bold;
+			.month-picker {
+				.year, .month {
+					color: #eee;
+				}
+				
+				.arrow {
+					color: #888;
+				}
+			}
+			
+			.total {
+				text {
+					color: #eee;
+					
+					&.amount {
+						color: #eee;
+					}
+				}
+			}
+		}
+		
+		.bill-list {
+			.date-group {
+				.date-header {
+					background-color: #1a1a1a;
+					color: #888;
+				}
+				
+				.bill-item {
+					background-color: #1e1e1e;
+					border-bottom-color: #2d2d2d;
+					
+					.category-icon {
+						box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
+					}
+					
+					.bill-info {
+						.category {
+							color: #eee;
+						}
+						
+						.remark {
+							color: #888;
+						}
+					}
+					
+					.bill-amount {
+						.amount {
+							color: #eee;
+						}
+							
+						.time {
+							color: #888;
+						}
+					}
+					
+					&:active {
+						background-color: #2a2a2a;
+					}
+					
+					&:last-child {
+						border-bottom: none;
+					}
+				}
 			}
 		}
 	}
-}
-
-.bill-list {
-	flex: 1;
 	
-	.date-group {
-		.date-header {
+	.month-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 24rpx 32rpx;
+		background-color: #fff;
+		transition: background-color 0.3s;
+		
+		.month-picker {
 			display: flex;
-			justify-content: space-between;
-			padding: 20rpx 32rpx;
-			font-size: 28rpx;
-			color: #666;
-			background-color: #f5f5f5;
+			align-items: baseline;
+			
+			.year {
+				font-size: 32rpx;
+				color: #333;
+				margin-right: 8rpx;
+			}
+			
+			.month {
+				font-size: 40rpx;
+				font-weight: bold;
+				color: #333;
+				margin-right: 8rpx;
+			}
+			
+			.arrow {
+				font-size: 24rpx;
+				color: #666;
+			}
 		}
 		
-		.bill-item {
-			display: flex;
-			align-items: center;
-			padding: 24rpx 32rpx;
-			background-color: #fff;
-			border-bottom: 1rpx solid #f5f5f5;
+		.total {
+			text-align: right;
 			
-			.category-icon {
-				width: 88rpx;
-				height: 88rpx;
-				margin-right: 24rpx;
-				border-radius: 16rpx;
+			text {
+				font-size: 28rpx;
+				color: #333;
+				
+				&.amount {
+					margin-left: 8rpx;
+					font-size: 32rpx;
+					font-weight: bold;
+				}
+			}
+		}
+	}
+	
+	.bill-list {
+		flex: 1;
+		
+		.date-group {
+			.date-header {
+				display: flex;
+				justify-content: space-between;
+				padding: 20rpx 32rpx;
+				font-size: 28rpx;
+				color: #666;
+				background-color: #f5f5f5;
+			}
+			
+			.bill-item {
 				display: flex;
 				align-items: center;
-				justify-content: center;
-				font-size: 40rpx;
-			}
-			
-			.bill-info {
-				flex: 1;
+				padding: 24rpx 32rpx;
+				background-color: #fff;
+				border-bottom: 1rpx solid #f5f5f5;
+				transition: background-color 0.3s;
 				
-				.category {
-					font-size: 32rpx;
-					color: #333;
-					margin-bottom: 8rpx;
+				.category-icon {
+					width: 88rpx;
+					height: 88rpx;
+					margin-right: 24rpx;
+					border-radius: 16rpx;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					font-size: 40rpx;
 				}
 				
-				.remark {
-					font-size: 28rpx;
-					color: #999;
-				}
-			}
-			
-			.bill-amount {
-				text-align: right;
-				
-				.amount {
-					display: block;
-					font-size: 32rpx;
-					color: #333;
-					margin-bottom: 8rpx;
-				}
-				
-				.time {
-					font-size: 24rpx;
-					color: #999;
-				}
-			}
-			
-			&:active {
-				background-color: #f9f9f9;
-			}
-			
-			// 添加动画样式
-			&.animate {
-				animation: slideIn 0.3s ease-out;
-				
-				@keyframes slideIn {
-					from {
-						opacity: 0;
-						transform: translateY(20rpx);
+				.bill-info {
+					flex: 1;
+					
+					.category {
+						font-size: 32rpx;
+						color: #333;
+						margin-bottom: 8rpx;
 					}
-					to {
-						opacity: 1;
-						transform: translateY(0);
+					
+					.remark {
+						font-size: 28rpx;
+						color: #999;
 					}
 				}
-			}
-			
-			// 删除时的动画
-			&.animate-leave {
-				animation: slideOut 0.3s ease-out;
 				
-				@keyframes slideOut {
-					from {
-						opacity: 1;
-						transform: translateX(0);
+				.bill-amount {
+					text-align: right;
+					
+					.amount {
+						display: block;
+						font-size: 32rpx;
+						color: #333;
+						margin-bottom: 8rpx;
 					}
-					to {
-						opacity: 0;
-						transform: translateX(-100%);
+					
+					.time {
+						font-size: 24rpx;
+						color: #999;
+					}
+				}
+				
+				&:active {
+					background-color: #f9f9f9;
+				}
+				
+				// 添加动画样式
+				&.animate {
+					animation: slideIn 0.3s ease-out;
+					
+					@keyframes slideIn {
+						from {
+							opacity: 0;
+							transform: translateY(20rpx);
+						}
+						to {
+							opacity: 1;
+							transform: translateY(0);
+						}
+					}
+				}
+				
+				// 删除时的动画
+				&.animate-leave {
+					animation: slideOut 0.3s ease-out;
+					
+					@keyframes slideOut {
+						from {
+							opacity: 1;
+							transform: translateX(0);
+						}
+						to {
+							opacity: 0;
+							transform: translateX(-100%);
+						}
 					}
 				}
 			}
 		}
 	}
-}
-
-.empty-state {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	padding: 100rpx 0;
 	
-	.empty-image {
-		width: 200rpx;
-		height: 200rpx;
-		margin-bottom: 20rpx;
-	}
-	
-	.empty-text {
-		font-size: 28rpx;
-		color: #999;
-		margin-bottom: 30rpx;
-	}
-	
-	.add-btn {
-		width: 200rpx;
-		height: 80rpx;
-		line-height: 80rpx;
-		font-size: 28rpx;
-		color: #fff;
-		background-color: #3498db;
-		border-radius: 40rpx;
+	.empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 100rpx 0;
+		
+		.empty-image {
+			width: 200rpx;
+			height: 200rpx;
+			margin-bottom: 20rpx;
+		}
+		
+		.empty-text {
+			font-size: 28rpx;
+			color: #999;
+			margin-bottom: 30rpx;
+		}
+		
+		.add-btn {
+			width: 200rpx;
+			height: 80rpx;
+			line-height: 80rpx;
+			font-size: 28rpx;
+			color: #fff;
+			background-color: #3498db;
+			border-radius: 40rpx;
+		}
 	}
 }
 </style> 

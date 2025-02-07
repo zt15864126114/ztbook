@@ -175,21 +175,21 @@
 
 <script setup>
 import { useAccountStore } from '@/stores/account'
-import { ref, onMounted } from 'vue'
+import { useAppStore } from '@/stores/app'
+import { ref, onMounted, computed } from 'vue'
 import { exportToCSV } from '@/utils/transfer.js'
 import { backupData as backupDataUtil, restoreData as restoreDataUtil } from '@/utils/backup.js'
 
 const accountStore = useAccountStore()
+const appStore = useAppStore()
+const darkMode = computed(() => appStore.darkMode)
 
 // 预算提醒开关
 const budgetAlert = ref(uni.getStorageSync('budgetAlert') || false)
 
-// 深色模式
-const darkMode = ref(uni.getStorageSync('darkMode') || false)
-
-const cacheSize = ref('0.00MB')
-
-const categoryPopup = ref(null)
+// 添加新的设置项变量
+const listAnimation = ref(uni.getStorageSync('listAnimation') ?? true)
+const thousandsSeparator = ref(uni.getStorageSync('thousandsSeparator') ?? false)
 
 // 自动备份
 const autoBackup = ref(uni.getStorageSync('autoBackup') || false)
@@ -219,12 +219,43 @@ const currencies = ref([
 	{ code: 'BRL', name: '巴西雷亚尔', symbol: 'R$' },
 	{ code: 'RUB', name: '俄罗斯卢布', symbol: '₽' },
 	{ code: 'TRY', name: '土耳其里拉', symbol: '₺' },
-	{ code: 'CNY', name: '人民币', symbol: '¥' },
 ])
 
-// 添加新的设置项变量
-const listAnimation = ref(uni.getStorageSync('listAnimation') ?? true)
-const thousandsSeparator = ref(uni.getStorageSync('thousandsSeparator') ?? false)
+// 添加分类管理相关
+const categoryPopup = ref(null)
+
+// 缓存大小
+const cacheSize = ref('0.00MB')
+
+// 页面加载时获取缓存大小
+onMounted(() => {
+	getCacheSize()
+	
+	// 初始化深色模式
+	if (darkMode.value) {
+		uni.setTabBarStyle({
+			backgroundColor: '#2d2d2d',
+			borderStyle: 'black',
+			color: '#8F8F8F',
+			selectedColor: '#3498db'
+		})
+		uni.setNavigationBarColor({
+			frontColor: '#ffffff',
+			backgroundColor: '#2d2d2d'
+		})
+		// 使用全局状态来控制深色模式
+		getApp().globalData = getApp().globalData || {}
+		getApp().globalData.darkMode = true
+	}
+	
+	// 检查是否需要自动备份
+	if (autoBackup.value) {
+		const lastBackup = uni.getStorageSync('backup_data')?.backupTime
+		if (!lastBackup || isBackupOutdated(lastBackup)) {
+			backupData(true) // 静默备份
+		}
+	}
+})
 
 // 切换预算提醒
 function toggleBudgetAlert(e) {
@@ -241,35 +272,7 @@ function toggleBudgetAlert(e) {
 
 // 切换深色模式
 function toggleDarkMode(e) {
-	darkMode.value = e.detail.value
-	uni.setStorageSync('darkMode', darkMode.value)
-	
-	if (darkMode.value) {
-		// 设置导航栏样式
-		uni.setNavigationBarColor({
-			frontColor: '#ffffff',
-			backgroundColor: '#2d2d2d'
-		})
-		// 设置底部导航栏样式
-		uni.setTabBarStyle({
-			backgroundColor: '#2d2d2d',
-			borderStyle: 'black',
-			color: '#8F8F8F',
-			selectedColor: '#3498db'
-		})
-	} else {
-		// 恢复默认样式
-		uni.setNavigationBarColor({
-			frontColor: '#000000',
-			backgroundColor: '#ffffff'
-		})
-		uni.setTabBarStyle({
-			backgroundColor: '#ffffff',
-			borderStyle: 'white',
-			color: '#8F8F8F',
-			selectedColor: '#3498db'
-		})
-	}
+	appStore.toggleDarkMode(e.detail.value)
 }
 
 // 设置月度预算
@@ -296,6 +299,17 @@ function setMonthlyBudget() {
 			}
 		}
 	})
+}
+
+// 添加日期时间格式化函数
+function formatDateTime(date) {
+	const year = date.getFullYear()
+	const month = date.getMonth() + 1
+	const day = date.getDate()
+	const hour = date.getHours().toString().padStart(2, '0')
+	const minute = date.getMinutes().toString().padStart(2, '0')
+	
+	return `${year}年${month}月${day}日 ${hour}:${minute}`
 }
 
 // 导出数据
@@ -497,33 +511,6 @@ function clearCache() {
 	})
 }
 
-// 页面加载时获取缓存大小
-onMounted(() => {
-	getCacheSize()
-	
-	// 初始化深色模式
-	if (darkMode.value) {
-		uni.setTabBarStyle({
-			backgroundColor: '#2d2d2d',
-			borderStyle: 'black',
-			color: '#8F8F8F',
-			selectedColor: '#3498db'
-		})
-		uni.setNavigationBarColor({
-			frontColor: '#ffffff',
-			backgroundColor: '#2d2d2d'
-		})
-	}
-	
-	// 检查是否需要自动备份
-	if (autoBackup.value) {
-		const lastBackup = uni.getStorageSync('backup_data')?.backupTime
-		if (!lastBackup || isBackupOutdated(lastBackup)) {
-			backupData(true) // 静默备份
-		}
-	}
-})
-
 // 检查备份是否过期（超过24小时）
 function isBackupOutdated(lastBackupTime) {
 	const last = new Date(lastBackupTime)
@@ -692,17 +679,6 @@ function toggleThousandsSeparator(e) {
 	uni.setStorageSync('thousandsSeparator', thousandsSeparator.value)
 	accountStore.setThousandsSeparator(thousandsSeparator.value)
 }
-
-// 添加日期时间格式化函数
-function formatDateTime(date) {
-	const year = date.getFullYear()
-	const month = date.getMonth() + 1
-	const day = date.getDate()
-	const hour = date.getHours().toString().padStart(2, '0')
-	const minute = date.getMinutes().toString().padStart(2, '0')
-	
-	return `${year}年${month}月${day}日 ${hour}:${minute}`
-}
 </script>
 
 <style lang="scss" scoped>
@@ -745,6 +721,7 @@ function formatDateTime(date) {
 	align-items: center;
 	padding: 32rpx 24rpx;
 	background-color: #fff;
+	transition: background-color 0.3s;
 	
 	&:not(:last-child) {
 		border-bottom: 1rpx solid #f5f5f5;
@@ -753,6 +730,7 @@ function formatDateTime(date) {
 	.item-label {
 		font-size: 32rpx;
 		color: #333;
+		transition: color 0.3s;
 		
 		&.danger {
 			color: #ff0000;
@@ -764,16 +742,27 @@ function formatDateTime(date) {
 		align-items: center;
 		color: #666;
 		font-size: 28rpx;
+		transition: color 0.3s;
+		
+		&.amount {
+			font-weight: 500;
+			color: #333;
+		}
 	}
 	
 	.iconfont {
 		font-size: 32rpx;
 		color: #999;
 		margin-left: 8rpx;
+		transition: transform 0.3s;
 	}
 	
 	&:active {
 		background-color: #f9f9f9;
+		
+		.iconfont {
+			transform: translateX(4rpx);
+		}
 	}
 }
 
@@ -800,6 +789,11 @@ function formatDateTime(date) {
 			font-size: 40rpx;
 			color: #999;
 			padding: 0 20rpx;
+			transition: transform 0.3s;
+			
+			&:active {
+				transform: rotate(90deg);
+			}
 		}
 	}
 	
@@ -807,6 +801,22 @@ function formatDateTime(date) {
 		flex: 1;
 		padding: 20rpx 30rpx;
 		box-sizing: border-box;
+		
+		&::-webkit-scrollbar {
+			width: 4px;
+			background: transparent;
+		}
+		
+		&::-webkit-scrollbar-thumb {
+			background: rgba(0, 0, 0, 0.1);
+			border-radius: 2px;
+		}
+		
+		.dark & {
+			&::-webkit-scrollbar-thumb {
+				background: rgba(255, 255, 255, 0.1);
+			}
+		}
 		
 		.category-item {
 			display: flex;
@@ -847,9 +857,14 @@ function formatDateTime(date) {
 					min-width: 120rpx;
 					text-align: center;
 					
+					&::after {
+						border: none;
+					}
+					
 					&.edit-btn {
 						color: #3498db;
-						background-color: #f0f9ff;
+						background-color: rgba(52, 152, 219, 0.1);
+						border-color: rgba(52, 152, 219, 0.5);
 						&:active {
 							background-color: #e3f2fd;
 						}
@@ -857,10 +872,11 @@ function formatDateTime(date) {
 					
 					&.delete-btn {
 						color: #ff0000;
-						background-color: #fff0f0;
+						background-color: rgba(255, 0, 0, 0.1);
+						border-color: rgba(255, 0, 0, 0.5);
 						
 						&:disabled {
-							opacity: 0.5;
+							border-color: rgba(255, 0, 0, 0.2);
 						}
 						&:active:not(:disabled) {
 							background-color: #ffe6e6;
@@ -918,6 +934,22 @@ function formatDateTime(date) {
 		max-height: calc(80vh - 100rpx);
 		padding: 20rpx 30rpx;
 		
+		&::-webkit-scrollbar {
+			width: 4px;
+			background: transparent;
+		}
+		
+		&::-webkit-scrollbar-thumb {
+			background: rgba(0, 0, 0, 0.1);
+			border-radius: 2px;
+		}
+		
+		.dark & {
+			&::-webkit-scrollbar-thumb {
+				background: rgba(255, 255, 255, 0.1);
+			}
+		}
+		
 		.currency-item {
 			display: flex;
 			align-items: center;
@@ -959,6 +991,89 @@ function formatDateTime(date) {
 		
 		.iconfont {
 			margin-left: 8rpx;
+		}
+	}
+}
+
+// 深色模式样式
+.dark {
+	.section {
+		background-color: #2d2d2d;
+		
+		.section-title {
+			color: #888;
+			border-bottom-color: #3d3d3d;
+		}
+	}
+	
+	.setting-item {
+		background-color: #2d2d2d;
+		border-bottom-color: #3d3d3d;
+		
+		.item-label {
+			color: #fff;
+			
+			&.danger {
+				color: #ff6b6b;
+			}
+		}
+		
+		.item-value {
+			color: #aaa;
+		}
+		
+		&:active {
+			background-color: #333;
+		}
+		
+		:deep(.uni-switch-input) {
+			background-color: #444 !important;
+			
+			&.uni-switch-input-checked {
+				background-color: #3498db !important;
+			}
+		}
+	}
+	
+	.category-manager,
+	.currency-picker {
+		background-color: #2d2d2d;
+		
+		.popup-header {
+			border-bottom-color: #3d3d3d;
+			
+			.title {
+				color: #fff;
+			}
+			
+			.close {
+				color: #888;
+			}
+		}
+		
+		.category-item,
+		.currency-item {
+			border-bottom-color: #3d3d3d;
+			
+			.name {
+				color: #fff;
+			}
+			
+			.code {
+				color: #888;
+			}
+			
+			&:active {
+				background-color: #333;
+			}
+			
+			&.active {
+				color: #3498db;
+			}
+		}
+		
+		.add-category {
+			color: #3498db;
 		}
 	}
 }

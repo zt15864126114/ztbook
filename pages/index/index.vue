@@ -1,5 +1,5 @@
 <template>
-	<view class="container">
+	<view :class="['container', darkMode ? 'dark' : '']">
 		<!-- 顶部统计卡片 -->
 		<view class="statistics-card">
 			<view class="month-overview">
@@ -88,9 +88,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAccountStore } from '@/stores/account'
+import { useAppStore } from '@/stores/app'
 import { formatDate, formatTime, getCurrentMonth, getCurrentYear } from '@/utils/date'
 
 const accountStore = useAccountStore()
+const appStore = useAppStore()
+const darkMode = computed(() => appStore.darkMode)
 
 // 当前月份
 const currentMonth = ref(getCurrentMonth())
@@ -232,6 +235,11 @@ function showBillDetail(item) {
 	min-height: 100vh;
 	background-color: #f5f5f5;
 	padding: 20rpx;
+	transition: background-color 0.3s;
+	
+	&.dark {
+		background-color: #121212;
+	}
 }
 
 .statistics-card {
@@ -240,6 +248,11 @@ function showBillDetail(item) {
 	padding: 40rpx 30rpx;
 	color: #fff;
 	margin-bottom: 20rpx;
+	
+	.dark & {
+		background: linear-gradient(135deg, #3498db, #1a5276);
+		box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.3);
+	}
 	
 	.month-overview {
 		text-align: center;
@@ -300,6 +313,38 @@ function showBillDetail(item) {
 	background-color: #fff;
 	border-radius: 20rpx;
 	padding: 20rpx;
+	transition: background-color 0.3s;
+	
+	.dark & {
+		background-color: #1e1e1e;
+		box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+		
+		.section-header {
+			.title {
+				color: #eee;
+			}
+			
+			.subtitle {
+				color: #aaa;
+			}
+		}
+		
+		.category-item {
+			.category-detail {
+				.name {
+					color: #eee;
+				}
+				
+				.amount {
+					color: #bbb;
+				}
+			}
+			
+			.percentage {
+				color: #bbb;
+			}
+		}
+	}
 	
 	.category-list {
 		.category-item {
@@ -350,6 +395,47 @@ function showBillDetail(item) {
 	border-radius: 20rpx;
 	padding: 20rpx;
 	margin-top: 20rpx;
+	transition: background-color 0.3s;
+	
+	.dark & {
+		background-color: #1e1e1e;
+		box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+		
+		.section-title {
+			color: #eee;
+			
+			.more {
+				color: #3498db;
+			}
+		}
+		
+		.bill-item {
+			border-bottom-color: #2d2d2d;
+			
+			.bill-detail {
+				.category {
+					color: #eee;
+				}
+				
+				.note {
+					color: #bbb;
+				}
+			}
+			
+			.amount {
+				color: #eee;
+				font-weight: 600;
+			}
+			
+			.time {
+				color: #bbb;
+			}
+			
+			&:active {
+				background-color: #2a2a2a;
+			}
+		}
+	}
 	
 	.bill-list {
 		.bill-item {
@@ -433,6 +519,18 @@ function showBillDetail(item) {
 			font-size: 40rpx;
 			margin-right: 10rpx;
 		}
+		
+		.dark & {
+			background: linear-gradient(135deg, #3498db, #1a5276);
+			box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.4);
+		}
+	}
+}
+
+// 添加分类图标的深色模式样式
+.dark {
+	.category-icon {
+		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
 	}
 }
 </style>
