@@ -1489,7 +1489,9 @@ This will fail in production.`);
       currency: "CNY",
       listAnimation: uni.getStorageSync("listAnimation") ?? true,
       thousandsSeparator: false,
-      hideAmount: uni.getStorageSync("hideAmount") ?? false
+      hideAmount: uni.getStorageSync("hideAmount") ?? false,
+      tags: []
+      // 添加 tags 状态
     }),
     actions: {
       initAccounts() {
@@ -1498,6 +1500,7 @@ This will fail in production.`);
         this.loadBudget();
         this.loadCurrency();
         this.loadThousandsSeparator();
+        this.loadTags();
       },
       // 从本地存储加载账单数据
       loadAccounts() {
@@ -1540,19 +1543,25 @@ This will fail in production.`);
       },
       // 添加标签
       addTag(tag) {
-        if (!this.tags.includes(tag)) {
+        var _a;
+        if (!((_a = this.tags) == null ? void 0 : _a.includes(tag))) {
+          if (!this.tags)
+            this.tags = [];
           this.tags.push(tag);
           this.saveTags();
         }
       },
       // 删除标签
       deleteTag(tag) {
+        if (!this.tags)
+          return;
         const index = this.tags.indexOf(tag);
         if (index !== -1) {
           this.tags.splice(index, 1);
           this.saveTags();
           this.accounts.forEach((account) => {
-            const tagIndex = account.tags.indexOf(tag);
+            var _a;
+            const tagIndex = (_a = account.tags) == null ? void 0 : _a.indexOf(tag);
             if (tagIndex !== -1) {
               account.tags.splice(tagIndex, 1);
             }
@@ -1592,10 +1601,11 @@ This will fail in production.`);
         this.accounts = this.accounts.filter((item) => !ids.includes(item.id));
         this.saveAccounts();
       },
-      // 添加刷新方法
+      // 刷新方法
       refresh() {
-        const accounts = uni.getStorageSync("accounts");
-        this.accounts = accounts || [];
+        this.loadAccounts();
+        this.loadCategories();
+        this.loadTags();
       },
       addCategory(category) {
         this.categories.push(category);
@@ -1672,6 +1682,13 @@ This will fail in production.`);
         const savedThousandsSeparator = uni.getStorageSync("thousandsSeparator");
         if (savedThousandsSeparator !== null) {
           this.thousandsSeparator = savedThousandsSeparator;
+        }
+      },
+      // 从本地存储加载标签
+      loadTags() {
+        const savedTags = uni.getStorageSync("tags");
+        if (savedTags) {
+          this.tags = savedTags;
         }
       }
     },
@@ -8997,6 +9014,80 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
     ]);
   }
   const PagesStatisticsStatistics = /* @__PURE__ */ _export_sfc(_sfc_main$4, [["render", _sfc_render$3], ["__scopeId", "data-v-fc23ec97"], ["__file", "D:/HBuilderProjects/ztbook/pages/statistics/statistics.vue"]]);
+  function exportToCSV(accounts) {
+    const headers = ["日期", "时间", "分类", "金额", "备注", "标签"];
+    const rows = accounts.map((account) => {
+      var _a;
+      return [
+        new Date(account.createTime).toLocaleDateString(),
+        new Date(account.createTime).toLocaleTimeString(),
+        account.category,
+        account.amount,
+        account.note || "",
+        ((_a = account.tags) == null ? void 0 : _a.join(",")) || ""
+      ];
+    });
+    const csv = [
+      headers.join(","),
+      ...rows.map((row) => row.join(","))
+    ].join("\n");
+    return csv;
+  }
+  function backupData() {
+    try {
+      const data = {
+        accounts: uni.getStorageSync("accounts"),
+        categories: uni.getStorageSync("categories"),
+        tags: uni.getStorageSync("tags"),
+        budget: uni.getStorageSync("budget"),
+        currency: uni.getStorageSync("currency"),
+        settings: {
+          darkMode: uni.getStorageSync("darkMode"),
+          listAnimation: uni.getStorageSync("listAnimation"),
+          thousandsSeparator: uni.getStorageSync("thousandsSeparator"),
+          hideAmount: uni.getStorageSync("hideAmount")
+        },
+        backupTime: Date.now()
+      };
+      uni.setStorageSync("backup_data", data);
+      return true;
+    } catch (error) {
+      formatAppLog("error", "at utils/backup.js:22", "备份失败:", error);
+      return false;
+    }
+  }
+  function restoreData() {
+    try {
+      const backup = uni.getStorageSync("backup_data");
+      if (!backup)
+        return false;
+      if (backup.accounts)
+        uni.setStorageSync("accounts", backup.accounts);
+      if (backup.categories)
+        uni.setStorageSync("categories", backup.categories);
+      if (backup.tags)
+        uni.setStorageSync("tags", backup.tags);
+      if (backup.budget)
+        uni.setStorageSync("budget", backup.budget);
+      if (backup.currency)
+        uni.setStorageSync("currency", backup.currency);
+      if (backup.settings) {
+        const { darkMode, listAnimation, thousandsSeparator, hideAmount } = backup.settings;
+        if (darkMode !== void 0)
+          uni.setStorageSync("darkMode", darkMode);
+        if (listAnimation !== void 0)
+          uni.setStorageSync("listAnimation", listAnimation);
+        if (thousandsSeparator !== void 0)
+          uni.setStorageSync("thousandsSeparator", thousandsSeparator);
+        if (hideAmount !== void 0)
+          uni.setStorageSync("hideAmount", hideAmount);
+      }
+      return true;
+    } catch (error) {
+      formatAppLog("error", "at utils/backup.js:51", "恢复失败:", error);
+      return false;
+    }
+  }
   const _sfc_main$3 = {
     __name: "settings",
     setup(__props, { expose: __expose }) {
@@ -9048,26 +9139,26 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
         darkMode.value = e2.detail.value;
         uni.setStorageSync("darkMode", darkMode.value);
         if (darkMode.value) {
+          uni.setNavigationBarColor({
+            frontColor: "#ffffff",
+            backgroundColor: "#2d2d2d"
+          });
           uni.setTabBarStyle({
             backgroundColor: "#2d2d2d",
             borderStyle: "black",
             color: "#8F8F8F",
             selectedColor: "#3498db"
           });
-          uni.setNavigationBarColor({
-            frontColor: "#ffffff",
-            backgroundColor: "#2d2d2d"
-          });
         } else {
+          uni.setNavigationBarColor({
+            frontColor: "#000000",
+            backgroundColor: "#ffffff"
+          });
           uni.setTabBarStyle({
             backgroundColor: "#ffffff",
             borderStyle: "white",
             color: "#8F8F8F",
             selectedColor: "#3498db"
-          });
-          uni.setNavigationBarColor({
-            frontColor: "#000000",
-            backgroundColor: "#ffffff"
           });
         }
       }
@@ -9101,27 +9192,84 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
         });
       }
       function exportData() {
-        const data = accountStore2.accounts;
-        convertToCSV(data);
-      }
-      function backupData(silent = false) {
         try {
-          const data = {
-            accounts: accountStore2.accounts,
-            categories: accountStore2.categories,
-            budget: accountStore2.budget,
-            budgetAlert: budgetAlert.value,
-            autoBackup: autoBackup.value,
-            backupTime: (/* @__PURE__ */ new Date()).toISOString()
-          };
-          uni.setStorageSync("backup_data", data);
-          if (!silent) {
-            uni.showToast({
-              title: "备份成功",
-              icon: "success"
-            });
+          const data = accountStore2.accounts;
+          const csv = exportToCSV(data);
+          let content = `账单明细导出 (${data.length}笔)
+`;
+          content += `导出时间：${formatDateTime2(/* @__PURE__ */ new Date())}
+`;
+          content += "==============================\n\n";
+          data.forEach((item) => {
+            var _a;
+            const date = new Date(item.createTime);
+            const amount = Number(item.amount);
+            content += `${formatDateTime2(date)}
+`;
+            content += `【${item.category}】 ${accountStore2.currencySymbol}${amount.toFixed(2)}
+`;
+            if ((_a = item.tags) == null ? void 0 : _a.length)
+              content += `标签: ${item.tags.join("、")}
+`;
+            if (item.note)
+              content += `备注: ${item.note}
+`;
+            content += "------------------------------\n";
+          });
+          const totalAmount = data.reduce((sum, item) => sum + Number(item.amount), 0);
+          const averageAmount = data.length > 0 ? totalAmount / data.length : 0;
+          content += "\n==============================\n";
+          content += `总支出：${accountStore2.currencySymbol}${totalAmount.toFixed(2)}
+`;
+          content += `平均支出：${accountStore2.currencySymbol}${averageAmount.toFixed(2)}
+`;
+          content += `记账天数：${new Set(data.map((item) => new Date(item.createTime).toLocaleDateString())).size}天
+`;
+          content += `记账笔数：${data.length}笔
+
+`;
+          content += "导出自：记账本 App";
+          uni.shareWithSystem({
+            type: "text",
+            title: "账单明细",
+            summary: content,
+            content,
+            success: function() {
+              uni.showToast({
+                title: "分享成功",
+                icon: "success"
+              });
+            },
+            fail: function() {
+              uni.showToast({
+                title: "分享失败",
+                icon: "error"
+              });
+            }
+          });
+        } catch (error) {
+          formatAppLog("error", "at pages/settings/settings.vue:394", "导出失败:", error);
+          uni.showToast({
+            title: "导出失败",
+            icon: "error"
+          });
+        }
+      }
+      function backupData$1(silent = false) {
+        try {
+          const success = backupData();
+          if (success) {
+            if (!silent) {
+              uni.showToast({
+                title: "备份成功",
+                icon: "success"
+              });
+            }
+          } else {
+            throw new Error("备份失败");
           }
         } catch (error) {
+          formatAppLog("error", "at pages/settings/settings.vue:417", "备份失败:", error);
           if (!silent) {
             uni.showToast({
               title: "备份失败",
@@ -9132,20 +9280,21 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
       }
       function clearData() {
         uni.showModal({
-          title: "确认清空",
-          content: "此操作将清空所有账单数据，无法恢复，是否继续？",
-          confirmColor: "#ff0000",
+          title: "清空数据",
+          content: "确定要清空所有数据吗？此操作不可恢复。",
           success: (res) => {
             if (res.confirm) {
               try {
-                backupData();
-                accountStore2.$reset();
-                accountStore2.saveAccounts();
+                uni.removeStorageSync("accounts");
+                uni.removeStorageSync("categories");
+                uni.removeStorageSync("tags");
+                accountStore2.initAccounts();
                 uni.showToast({
                   title: "已清空数据",
                   icon: "success"
                 });
               } catch (error) {
+                formatAppLog("error", "at pages/settings/settings.vue:446", "清空数据失败:", error);
                 uni.showToast({
                   title: "操作失败",
                   icon: "error"
@@ -9168,19 +9317,6 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
           showCancel: false,
           confirmText: "知道了"
         });
-      }
-      function convertToCSV(data) {
-        const headers = ["日期", "分类", "金额", "备注"];
-        const rows = data.map((item) => [
-          new Date(item.createTime).toLocaleString(),
-          item.category,
-          item.amount,
-          item.remark || ""
-        ]);
-        return [
-          headers.join(","),
-          ...rows.map((row) => row.join(","))
-        ].join("\n");
       }
       function getCacheSize() {
         uni.getStorageInfo({
@@ -9230,7 +9366,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
         if (autoBackup.value) {
           const lastBackup = (_a = uni.getStorageSync("backup_data")) == null ? void 0 : _a.backupTime;
           if (!lastBackup || isBackupOutdated(lastBackup)) {
-            backupData(true);
+            backupData$1(true);
           }
         }
       });
@@ -9314,37 +9450,25 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
           }
         });
       }
-      function restoreData() {
+      function restoreData$1() {
         uni.showModal({
           title: "恢复数据",
-          content: "将恢复到最近一次的备份数据，当前数据将被覆盖，是否继续？",
+          content: "确定要恢复数据吗？当前数据将被覆盖。",
           success: (res) => {
             if (res.confirm) {
               try {
-                const backupData2 = uni.getStorageSync("backup_data");
-                if (!backupData2) {
+                const success = restoreData();
+                if (success) {
+                  accountStore2.initAccounts();
                   uni.showToast({
-                    title: "没有备份数据",
-                    icon: "none"
+                    title: "恢复成功",
+                    icon: "success"
                   });
-                  return;
+                } else {
+                  throw new Error("恢复失败");
                 }
-                accountStore2.accounts = backupData2.accounts || [];
-                accountStore2.saveAccounts();
-                accountStore2.categories = backupData2.categories || [];
-                accountStore2.saveCategories();
-                if (backupData2.budget) {
-                  accountStore2.setBudget(backupData2.budget);
-                }
-                if (backupData2.budgetAlert !== void 0) {
-                  budgetAlert.value = backupData2.budgetAlert;
-                  uni.setStorageSync("budgetAlert", budgetAlert.value);
-                }
-                uni.showToast({
-                  title: "恢复成功",
-                  icon: "success"
-                });
               } catch (error) {
+                formatAppLog("error", "at pages/settings/settings.vue:655", "恢复失败:", error);
                 uni.showToast({
                   title: "恢复失败",
                   icon: "error"
@@ -9387,9 +9511,23 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
         uni.setStorageSync("thousandsSeparator", thousandsSeparator.value);
         accountStore2.setThousandsSeparator(thousandsSeparator.value);
       }
-      const __returned__ = { accountStore: accountStore2, budgetAlert, darkMode, fontSize, cacheSize, categoryPopup, autoBackup, currencyPopup, currencies, listAnimation, thousandsSeparator, toggleBudgetAlert, toggleDarkMode, changeFontSize, setMonthlyBudget, exportData, backupData, clearData, checkUpdate, showAbout, convertToCSV, getCacheSize, clearCache, isBackupOutdated, showCategoryManager, closeCategoryManager, addCategory, editCategory, deleteCategory, restoreData, toggleAutoBackup, showCurrencyPicker, closeCurrencyPicker, selectCurrency, toggleListAnimation, toggleThousandsSeparator, get useAccountStore() {
+      function formatDateTime2(date) {
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const hour = date.getHours().toString().padStart(2, "0");
+        const minute = date.getMinutes().toString().padStart(2, "0");
+        return `${year}年${month}月${day}日 ${hour}:${minute}`;
+      }
+      const __returned__ = { accountStore: accountStore2, budgetAlert, darkMode, fontSize, cacheSize, categoryPopup, autoBackup, currencyPopup, currencies, listAnimation, thousandsSeparator, toggleBudgetAlert, toggleDarkMode, changeFontSize, setMonthlyBudget, exportData, backupData: backupData$1, clearData, checkUpdate, showAbout, getCacheSize, clearCache, isBackupOutdated, showCategoryManager, closeCategoryManager, addCategory, editCategory, deleteCategory, restoreData: restoreData$1, toggleAutoBackup, showCurrencyPicker, closeCurrencyPicker, selectCurrency, toggleListAnimation, toggleThousandsSeparator, formatDateTime: formatDateTime2, get useAccountStore() {
         return useAccountStore;
-      }, ref: vue.ref, onMounted: vue.onMounted };
+      }, ref: vue.ref, onMounted: vue.onMounted, get exportToCSV() {
+        return exportToCSV;
+      }, get backupDataUtil() {
+        return backupData;
+      }, get restoreDataUtil() {
+        return restoreData;
+      } };
       Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
       return __returned__;
     }
@@ -10498,23 +10636,23 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
       accountStore2.initAccounts();
       const darkMode = uni.getStorageSync("darkMode");
       if (darkMode) {
+        uni.setNavigationBarColor({
+          frontColor: "#ffffff",
+          backgroundColor: "#2d2d2d"
+        });
         uni.setTabBarStyle({
           backgroundColor: "#2d2d2d",
           borderStyle: "black",
           color: "#8F8F8F",
           selectedColor: "#3498db"
         });
-        uni.setNavigationBarColor({
-          frontColor: "#ffffff",
-          backgroundColor: "#2d2d2d"
-        });
       }
     },
     onShow: function() {
-      formatAppLog("log", "at App.vue:26", "App Show");
+      formatAppLog("log", "at App.vue:28", "App Show");
     },
     onHide: function() {
-      formatAppLog("log", "at App.vue:29", "App Hide");
+      formatAppLog("log", "at App.vue:31", "App Hide");
     },
     methods: {}
   };

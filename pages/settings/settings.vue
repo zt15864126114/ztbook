@@ -188,6 +188,8 @@
 <script setup>
 import { useAccountStore } from '@/stores/account'
 import { ref, onMounted } from 'vue'
+import { exportToCSV } from '@/utils/transfer.js'
+import { backupData as backupDataUtil, restoreData as restoreDataUtil } from '@/utils/backup.js'
 
 const accountStore = useAccountStore()
 
@@ -255,31 +257,30 @@ function toggleDarkMode(e) {
 	darkMode.value = e.detail.value
 	uni.setStorageSync('darkMode', darkMode.value)
 	
-	// 应用深色模式
 	if (darkMode.value) {
-		// 使用 uni.setTabBarStyle 设置底部导航栏样式
+		// 设置导航栏样式
+		uni.setNavigationBarColor({
+			frontColor: '#ffffff',
+			backgroundColor: '#2d2d2d'
+		})
+		// 设置底部导航栏样式
 		uni.setTabBarStyle({
 			backgroundColor: '#2d2d2d',
 			borderStyle: 'black',
 			color: '#8F8F8F',
 			selectedColor: '#3498db'
 		})
-		// 设置导航栏样式
-		uni.setNavigationBarColor({
-			frontColor: '#ffffff',
-			backgroundColor: '#2d2d2d'
-		})
 	} else {
 		// 恢复默认样式
+		uni.setNavigationBarColor({
+			frontColor: '#000000',
+			backgroundColor: '#ffffff'
+		})
 		uni.setTabBarStyle({
 			backgroundColor: '#ffffff',
 			borderStyle: 'white',
 			color: '#8F8F8F',
 			selectedColor: '#3498db'
-		})
-		uni.setNavigationBarColor({
-			frontColor: '#000000',
-			backgroundColor: '#ffffff'
 		})
 	}
 }
@@ -320,45 +321,100 @@ function setMonthlyBudget() {
 
 // 导出数据
 function exportData() {
-	const data = accountStore.accounts
-	const csv = convertToCSV(data)
-	
-	// #ifdef H5
-	const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-	const link = document.createElement('a')
-	link.href = URL.createObjectURL(blob)
-	link.download = `账单数据_${new Date().toLocaleDateString()}.csv`
-	link.click()
-	// #endif
-	
-	// #ifdef MP
-	uni.showToast({
-		title: '小程序暂不支持导出',
-		icon: 'none'
-	})
-	// #endif
+	try {
+		const data = accountStore.accounts
+		const csv = exportToCSV(data)
+		
+		// #ifdef H5
+		// 创建下载链接
+		const blob = new Blob([csv], { type: 'text/csv' })
+		const url = window.URL.createObjectURL(blob)
+		const a = document.createElement('a')
+		a.href = url
+		a.download = `账单明细_${new Date().toLocaleDateString()}.csv`
+		a.click()
+		window.URL.revokeObjectURL(url)
+		// #endif
+		
+		// #ifdef APP-PLUS
+		// 生成文本内容
+		let content = `账单明细导出 (${data.length}笔)\n`
+		content += `导出时间：${formatDateTime(new Date())}\n`
+		content += '==============================\n\n'
+		
+		data.forEach(item => {
+			const date = new Date(item.createTime)
+			const amount = Number(item.amount)
+			content += `${formatDateTime(date)}\n`
+			content += `【${item.category}】 ${accountStore.currencySymbol}${amount.toFixed(2)}\n`
+			if (item.tags?.length) content += `标签: ${item.tags.join('、')}\n`
+			if (item.note) content += `备注: ${item.note}\n`
+			content += '------------------------------\n'
+		})
+		
+		const totalAmount = data.reduce((sum, item) => sum + Number(item.amount), 0)
+		const averageAmount = data.length > 0 ? totalAmount / data.length : 0
+		
+		content += '\n==============================\n'
+		content += `总支出：${accountStore.currencySymbol}${totalAmount.toFixed(2)}\n`
+		content += `平均支出：${accountStore.currencySymbol}${averageAmount.toFixed(2)}\n`
+		content += `记账天数：${new Set(data.map(item => new Date(item.createTime).toLocaleDateString())).size}天\n`
+		content += `记账笔数：${data.length}笔\n\n`
+		content += '导出自：记账本 App'
+		
+		// 使用系统分享
+		uni.shareWithSystem({
+			type: 'text',
+			title: '账单明细',
+			summary: content,
+			content: content,
+			success: function() {
+				uni.showToast({
+					title: '分享成功',
+					icon: 'success'
+				})
+			},
+			fail: function() {
+				uni.showToast({
+					title: '分享失败',
+					icon: 'error'
+				})
+			}
+		})
+		// #endif
+		
+		// #ifdef MP
+		uni.showModal({
+			title: '提示',
+			content: '小程序暂不支持导出功能',
+			showCancel: false
+		})
+		// #endif
+	} catch (error) {
+		console.error('导出失败:', error)
+		uni.showToast({
+			title: '导出失败',
+			icon: 'error'
+		})
+	}
 }
 
 // 备份数据
 function backupData(silent = false) {
 	try {
-		const data = {
-			accounts: accountStore.accounts,
-			categories: accountStore.categories,
-			budget: accountStore.budget,
-			budgetAlert: budgetAlert.value,
-			autoBackup: autoBackup.value,
-			backupTime: new Date().toISOString()
-		}
-		uni.setStorageSync('backup_data', data)
-		
-		if (!silent) {
-			uni.showToast({
-				title: '备份成功',
-				icon: 'success'
-			})
+		const success = backupDataUtil()
+		if (success) {
+			if (!silent) {
+				uni.showToast({
+					title: '备份成功',
+					icon: 'success'
+				})
+			}
+		} else {
+			throw new Error('备份失败')
 		}
 	} catch (error) {
+		console.error('备份失败:', error)
 		if (!silent) {
 			uni.showToast({
 				title: '备份失败',
@@ -371,22 +427,23 @@ function backupData(silent = false) {
 // 清空数据
 function clearData() {
 	uni.showModal({
-		title: '确认清空',
-		content: '此操作将清空所有账单数据，无法恢复，是否继续？',
-		confirmColor: '#ff0000',
+		title: '清空数据',
+		content: '确定要清空所有数据吗？此操作不可恢复。',
 		success: (res) => {
 			if (res.confirm) {
 				try {
-					// 先备份
-					backupData()
-					// 清空数据
-					accountStore.$reset()
-					accountStore.saveAccounts()
+					// 清空所有数据
+					uni.removeStorageSync('accounts')
+					uni.removeStorageSync('categories')
+					uni.removeStorageSync('tags')
+					// 重新初始化账户数据
+					accountStore.initAccounts()
 					uni.showToast({
 						title: '已清空数据',
 						icon: 'success'
 					})
 				} catch (error) {
+					console.error('清空数据失败:', error)
 					uni.showToast({
 						title: '操作失败',
 						icon: 'error'
@@ -413,22 +470,6 @@ function showAbout() {
 		showCancel: false,
 		confirmText: '知道了'
 	})
-}
-
-// 转换为CSV格式
-function convertToCSV(data) {
-	const headers = ['日期', '分类', '金额', '备注']
-	const rows = data.map(item => [
-		new Date(item.createTime).toLocaleString(),
-		item.category,
-		item.amount,
-		item.remark || ''
-	])
-	
-	return [
-		headers.join(','),
-		...rows.map(row => row.join(','))
-	].join('\n')
 }
 
 // 获取缓存大小
@@ -595,43 +636,23 @@ function deleteCategory(category) {
 function restoreData() {
 	uni.showModal({
 		title: '恢复数据',
-		content: '将恢复到最近一次的备份数据，当前数据将被覆盖，是否继续？',
+		content: '确定要恢复数据吗？当前数据将被覆盖。',
 		success: (res) => {
 			if (res.confirm) {
 				try {
-					const backupData = uni.getStorageSync('backup_data')
-					if (!backupData) {
+					const success = restoreDataUtil()
+					if (success) {
+						// 重新初始化账户数据
+						accountStore.initAccounts()
 						uni.showToast({
-							title: '没有备份数据',
-							icon: 'none'
+							title: '恢复成功',
+							icon: 'success'
 						})
-						return
+					} else {
+						throw new Error('恢复失败')
 					}
-					
-					// 恢复账单数据
-					accountStore.accounts = backupData.accounts || []
-					accountStore.saveAccounts()
-					
-					// 恢复分类数据
-					accountStore.categories = backupData.categories || []
-					accountStore.saveCategories()
-					
-					// 恢复预算设置
-					if (backupData.budget) {
-						accountStore.setBudget(backupData.budget)
-					}
-					
-					// 恢复其他设置
-					if (backupData.budgetAlert !== undefined) {
-						budgetAlert.value = backupData.budgetAlert
-						uni.setStorageSync('budgetAlert', budgetAlert.value)
-					}
-					
-					uni.showToast({
-						title: '恢复成功',
-						icon: 'success'
-					})
 				} catch (error) {
+					console.error('恢复失败:', error)
 					uni.showToast({
 						title: '恢复失败',
 						icon: 'error'
@@ -687,6 +708,17 @@ function toggleThousandsSeparator(e) {
 	thousandsSeparator.value = e.detail.value
 	uni.setStorageSync('thousandsSeparator', thousandsSeparator.value)
 	accountStore.setThousandsSeparator(thousandsSeparator.value)
+}
+
+// 添加日期时间格式化函数
+function formatDateTime(date) {
+	const year = date.getFullYear()
+	const month = date.getMonth() + 1
+	const day = date.getDate()
+	const hour = date.getHours().toString().padStart(2, '0')
+	const minute = date.getMinutes().toString().padStart(2, '0')
+	
+	return `${year}年${month}月${day}日 ${hour}:${minute}`
 }
 </script>
 

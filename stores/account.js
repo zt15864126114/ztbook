@@ -15,7 +15,8 @@ export const useAccountStore = defineStore('account', {
     currency: 'CNY',
     listAnimation: uni.getStorageSync('listAnimation') ?? true,
     thousandsSeparator: false,
-    hideAmount: uni.getStorageSync('hideAmount') ?? false
+    hideAmount: uni.getStorageSync('hideAmount') ?? false,
+    tags: []  // 添加 tags 状态
   }),
   
   actions: {
@@ -25,6 +26,7 @@ export const useAccountStore = defineStore('account', {
       this.loadBudget()
       this.loadCurrency()
       this.loadThousandsSeparator()
+      this.loadTags()
     },
     
     // 从本地存储加载账单数据
@@ -76,7 +78,8 @@ export const useAccountStore = defineStore('account', {
     
     // 添加标签
     addTag(tag) {
-      if (!this.tags.includes(tag)) {
+      if (!this.tags?.includes(tag)) {
+        if (!this.tags) this.tags = []
         this.tags.push(tag)
         this.saveTags()
       }
@@ -84,13 +87,14 @@ export const useAccountStore = defineStore('account', {
     
     // 删除标签
     deleteTag(tag) {
+      if (!this.tags) return
       const index = this.tags.indexOf(tag)
       if (index !== -1) {
         this.tags.splice(index, 1)
         this.saveTags()
         // 同时删除所有账单中的这个标签
         this.accounts.forEach(account => {
-          const tagIndex = account.tags.indexOf(tag)
+          const tagIndex = account.tags?.indexOf(tag)
           if (tagIndex !== -1) {
             account.tags.splice(tagIndex, 1)
           }
@@ -137,11 +141,11 @@ export const useAccountStore = defineStore('account', {
       this.saveAccounts()
     },
 
-    // 添加刷新方法
+    // 刷新方法
     refresh() {
-      // 从本地存储重新加载数据
-      const accounts = uni.getStorageSync('accounts')
-      this.accounts = accounts || []
+      this.loadAccounts()
+      this.loadCategories()
+      this.loadTags()
     },
 
     addCategory(category) {
@@ -234,6 +238,14 @@ export const useAccountStore = defineStore('account', {
       const savedThousandsSeparator = uni.getStorageSync('thousandsSeparator')
       if (savedThousandsSeparator !== null) {
         this.thousandsSeparator = savedThousandsSeparator
+      }
+    },
+
+    // 从本地存储加载标签
+    loadTags() {
+      const savedTags = uni.getStorageSync('tags')
+      if (savedTags) {
+        this.tags = savedTags
       }
     }
   },

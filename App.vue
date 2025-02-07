@@ -10,15 +10,17 @@
 			// 初始化深色模式
 			const darkMode = uni.getStorageSync('darkMode')
 			if (darkMode) {
+				// 设置导航栏样式
+				uni.setNavigationBarColor({
+					frontColor: '#ffffff',
+					backgroundColor: '#2d2d2d'
+				})
+				// 设置底部导航栏样式
 				uni.setTabBarStyle({
 					backgroundColor: '#2d2d2d',
 					borderStyle: 'black',
 					color: '#8F8F8F',
 					selectedColor: '#3498db'
-				})
-				uni.setNavigationBarColor({
-					frontColor: '#ffffff',
-					backgroundColor: '#2d2d2d'
 				})
 			}
 		},
@@ -40,43 +42,37 @@
 	}
 	
 	/* 深色模式全局样式 */
-	[data-theme='dark'] {
-		page {
-			background-color: #1a1a1a;
-		}
+	.dark {
+		background-color: #1a1a1a;
 	}
 	
-	/* 设置全局字体和颜色 */
+	.dark view, 
+	.dark text, 
+	.dark button {
+		color: #fff;
+	}
+	
+	.dark .uni-popup {
+		background-color: rgba(0, 0, 0, 0.7);
+	}
+	
+	.dark .uni-popup__wrapper {
+		background-color: #2d2d2d;
+	}
+	
+	.dark .uni-popup__wrapper button {
+		background-color: #3d3d3d;
+		color: #fff;
+	}
+	
+	.dark .uni-popup__wrapper input {
+		background-color: #3d3d3d;
+		color: #fff;
+	}
+	
+	/* 设置全局字体 */
 	view, text, button {
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
 			Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-	}
-	
-	[data-theme='dark'] {
-		view, text, button {
-			color: #fff;
-		}
-		
-		page {
-			background-color: #1a1a1a;
-		}
-		
-		.uni-popup {
-			background-color: rgba(0, 0, 0, 0.7);
-		}
-		
-		.uni-popup__wrapper {
-			background-color: #2d2d2d;
-		}
-		
-		.uni-popup__wrapper button {
-			background-color: #3d3d3d;
-			color: #fff;
-		}
-		
-		.uni-popup__wrapper input {
-			background-color: #3d3d3d;
-			color: #fff;
-		}
 	}
 </style>
