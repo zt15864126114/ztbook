@@ -1,5 +1,5 @@
 <template>
-	<view :class="['container', darkMode ? 'dark' : '']">
+	<view :class="['container', darkMode ? 'dark' : '']" @touchstart="gesture.onTouchStart" @touchend="gesture.onTouchEnd">
 		<!-- 月份选择器 -->
 		<view class="month-header">
 			<view class="month-picker" @click="showMonthPicker">
@@ -15,121 +15,141 @@
 			</view>
 		</view>
 		
-		<!-- 统计内容区域 -->
-		<scroll-view 
-			scroll-y 
-			class="statistics-content"
-			:style="{
-				height: `calc(100vh - ${statusBarHeight}px - 44px - 52px - ${safeAreaBottom}px)`
-			}"
+		<!-- 添加下拉刷新 -->
+		<pull-to-refresh 
+			@refresh="onRefresh"
+			:refreshing="refreshing"
 		>
-			<template v-if="monthlyBills.length">
-				<!-- 饼图统计 -->
-				<view class="chart-section">
-					<view class="section-header">
-						<text class="title">支出构成</text>
-						<text class="subtitle">本月共{{ categoryRanking.length }}个支出类别</text>
+			<!-- 统计内容区域 -->
+			<scroll-view 
+				scroll-y 
+				class="statistics-content"
+				:style="{
+					height: `calc(100vh - ${statusBarHeight}px - 44px - 52px - ${safeAreaBottom}px)`
+				}"
+			>
+				<template v-if="monthlyBills.length">
+					<!-- 饼图统计 -->
+					<view class="chart-section">
+						<view class="section-header">
+							<text class="title">支出构成</text>
+							<text class="subtitle">本月共{{ categoryRanking.length }}个支出类别</text>
+						</view>
+						<view class="pie-chart">
+							<qiun-data-charts 
+								type="pie"
+								:opts="pieOpts"
+								:chartData="pieData"
+								canvasId="pieChart"
+								:background="darkMode ? '#1e1e1e' : '#ffffff'"
+								:onInit="onPieChartInit"
+								:disableScroll="true"
+							/>
+						</view>
 					</view>
-					<view class="pie-chart">
-						<qiun-data-charts 
-							type="pie"
-							:opts="pieOpts"
-							:chartData="pieData"
-							canvasId="pieChart"
-							:background="darkMode ? '#1e1e1e' : '#ffffff'"
-							:onInit="onPieChartInit"
-							:disableScroll="true"
-						/>
-					</view>
-				</view>
-				
-				<!-- 分类排行 -->
-				<view class="ranking-section">
-					<view class="section-header">
-						<text class="title">分类排行</text>
-						<text class="subtitle">按支出金额排序</text>
-					</view>
-					<view class="ranking-list">
-						<view 
-							class="ranking-item"
-							v-for="(category, index) in categoryRanking" 
-							:key="category.name"
-							@click="showCategoryDetail(category)"
-						>
-							<view class="rank-info">
-								<text class="rank-number">{{ index + 1 }}</text>
-								<view class="category-icon" :style="{ backgroundColor: category.color }">
-									{{ category.icon }}
+					
+					<!-- 分类排行 -->
+					<view class="ranking-section">
+						<view class="section-header">
+							<text class="title">分类排行</text>
+							<text class="subtitle">按支出金额排序</text>
+						</view>
+						<view class="ranking-list">
+							<view 
+								class="ranking-item"
+								v-for="(category, index) in categoryRanking" 
+								:key="category.name"
+								@click="showCategoryDetail(category)"
+							>
+								<view class="rank-info">
+									<text class="rank-number">{{ index + 1 }}</text>
+									<view class="category-icon" :style="{ backgroundColor: category.color }">
+										{{ category.icon }}
+									</view>
+									<view class="category-detail">
+										<text class="name">{{ category.name }}</text>
+										<text class="amount">{{ accountStore.currencySymbol }}{{ category.amount }}</text>
+									</view>
 								</view>
-								<view class="category-detail">
-									<text class="name">{{ category.name }}</text>
-									<text class="amount">{{ accountStore.currencySymbol }}{{ category.amount }}</text>
+								<view class="progress-bar">
+									<view 
+										class="progress" 
+										:style="{ 
+											width: category.percentage + '%',
+											backgroundColor: category.color
+										}"
+									></view>
+								</view>
+								<text class="percentage">{{ category.percentage }}%</text>
+							</view>
+						</view>
+					</view>
+					
+					<!-- 趋势图表 -->
+					<view class="trend-section">
+						<view class="section-header">
+							<view class="header-main">
+								<text class="title">支出趋势</text>
+								<view class="trend-tabs">
+									<text 
+										v-for="tab in trendTabs" 
+										:key="tab.type"
+										:class="['tab-item', { active: currentTrendType === tab.type }]"
+										@click="currentTrendType = tab.type"
+									>{{ tab.name }}</text>
 								</view>
 							</view>
-							<view class="progress-bar">
-								<view 
-									class="progress" 
-									:style="{ 
-										width: category.percentage + '%',
-										backgroundColor: category.color
-									}"
-								></view>
+							<view class="trend-overview">
+								<view class="overview-item">
+									<text class="label">日均支出</text>
+									<text class="value">{{ accountStore.currencySymbol }}{{ Number(dailyAverage).toFixed(2) }}</text>
+								</view>
+								<view class="overview-item">
+									<text class="label">记账天数</text>
+									<text class="value">{{ recordDays }}天</text>
+								</view>
 							</view>
-							<text class="percentage">{{ category.percentage }}%</text>
+							<view class="subtitle">
+								<text class="dot"></text>
+								<text>{{ currentTrendType === 'day' ? selectedMonth + '月每日支出变化' : 
+									   currentTrendType === 'month' ? selectedYear + '年每月支出变化' : 
+									   '近12个月支出变化' }}</text>
+							</view>
+						</view>
+						<view class="trend-chart">
+							<qiun-data-charts 
+								type="column"
+								:opts="trendOpts"
+								:chartData="trendData"
+								canvasId="trendChart"
+								:background="darkMode ? '#1e1e1e' : '#ffffff'"
+								:onInit="onTrendChartInit"
+								:disableScroll="true"
+							/>
 						</view>
 					</view>
+				</template>
+				<view v-else class="empty-state">
+					<image src="/static/empty.png" mode="aspectFit" class="empty-image"/>
+					<text class="empty-text">本月还没有记账哦</text>
+					<button class="add-btn" @click="goToAdd">去记一笔</button>
 				</view>
-				
-				<!-- 趋势图表 -->
-				<view class="trend-section">
-					<view class="section-header">
-						<view class="header-main">
-							<text class="title">支出趋势</text>
-							<view class="trend-tabs">
-								<text 
-									v-for="tab in trendTabs" 
-									:key="tab.type"
-									:class="['tab-item', { active: currentTrendType === tab.type }]"
-									@click="currentTrendType = tab.type"
-								>{{ tab.name }}</text>
-							</view>
-						</view>
-						<view class="trend-overview">
-							<view class="overview-item">
-								<text class="label">日均支出</text>
-								<text class="value">{{ accountStore.currencySymbol }}{{ Number(dailyAverage).toFixed(2) }}</text>
-							</view>
-							<view class="overview-item">
-								<text class="label">记账天数</text>
-								<text class="value">{{ recordDays }}天</text>
-							</view>
-						</view>
-						<view class="subtitle">
-							<text class="dot"></text>
-							<text>{{ currentTrendType === 'day' ? selectedMonth + '月每日支出变化' : 
-								   currentTrendType === 'month' ? selectedYear + '年每月支出变化' : 
-								   '近12个月支出变化' }}</text>
-						</view>
-					</view>
-					<view class="trend-chart">
-						<qiun-data-charts 
-							type="column"
-							:opts="trendOpts"
-							:chartData="trendData"
-							canvasId="trendChart"
-							:background="darkMode ? '#1e1e1e' : '#ffffff'"
-							:onInit="onTrendChartInit"
-							:disableScroll="true"
-						/>
-					</view>
-				</view>
-			</template>
-			<view v-else class="empty-state">
-				<image src="/static/empty.png" mode="aspectFit" class="empty-image"/>
-				<text class="empty-text">本月还没有记账哦</text>
-				<button class="add-btn" @click="goToAdd">去记一笔</button>
-			</view>
-		</scroll-view>
+			</scroll-view>
+		</pull-to-refresh>
+		
+		<!-- 添加分享功能 -->
+		<button 
+			class="share-btn"
+			@click="shareStatistics"
+		>
+			分享账单统计
+		</button>
+		
+		<!-- 用于生成分享图片的隐藏画布 -->
+		<canvas 
+			canvas-id="shareCanvas"
+			style="width: 750px; height: 1200px; position: fixed; left: -9999px;"
+		></canvas>
 	</view>
 </template>
 
@@ -139,6 +159,9 @@ import { onShow } from '@dcloudio/uni-app'
 import { useAccountStore } from '@/stores/account'
 import { useAppStore } from '@/stores/app'
 import { formatDate, getCurrentMonth, getCurrentYear } from '@/utils/date'
+import { useVirtualList } from '@/composables/useVirtualList'
+import { useGesture } from '@/composables/useGesture'
+import { generateShareImage } from '@/utils/share'
 
 const accountStore = useAccountStore()
 const appStore = useAppStore()
@@ -687,6 +710,78 @@ onShow(() => {
 	// 每次页面显示时刷新数据
 	accountStore.refresh()
 })
+
+// 在账单列表中使用虚拟列表
+const { list: virtualBills } = useVirtualList(monthlyBills, {
+	itemHeight: 88,
+	overscan: 5
+})
+
+// 添加手势操作
+const gesture = useGesture({
+	onSwipeLeft: () => {
+		// 切换到下个月
+		switchMonth(1)
+	},
+	onSwipeRight: () => {
+		// 切换到上个月
+		switchMonth(-1)
+	}
+})
+
+// 切换月份
+function switchMonth(offset) {
+	const date = new Date(selectedYear.value, selectedMonth.value - 1)
+	date.setMonth(date.getMonth() + offset)
+	
+	selectedYear.value = date.getFullYear()
+	selectedMonth.value = date.getMonth() + 1
+}
+
+// 分享统计数据
+async function shareStatistics() {
+	try {
+		uni.showLoading({ title: '生成图片中...' })
+		
+		// 准备分享数据
+		const shareData = {
+			year: selectedYear.value,
+			month: selectedMonth.value,
+			total: monthTotal.value,
+			currency: accountStore.currencySymbol,
+			categories: categoryRanking.value,
+			darkMode: darkMode.value
+		}
+		
+		// 生成分享图片
+		const imagePath = await generateShareImage(shareData)
+		
+		// 保存图片到相册
+		uni.saveImageToPhotosAlbum({
+			filePath: imagePath,
+			success: () => {
+				uni.showToast({
+					title: '已保存到相册',
+					icon: 'success'
+				})
+			},
+			fail: () => {
+				uni.showToast({
+					title: '保存失败',
+					icon: 'error'
+				})
+			}
+		})
+	} catch (err) {
+		console.error('分享失败:', err)
+		uni.showToast({
+			title: '分享失败',
+			icon: 'error'
+		})
+	} finally {
+		uni.hideLoading()
+	}
+}
 </script>
 
 <style lang="scss" scoped>
@@ -1157,6 +1252,26 @@ onShow(() => {
 		color: #fff;
 		background-color: #3498db;
 		border-radius: 40rpx;
+	}
+}
+
+.share-btn {
+	width: 200rpx;
+	height: 80rpx;
+	line-height: 80rpx;
+	font-size: 28rpx;
+	color: #fff;
+	background-color: #3498db;
+	border-radius: 40rpx;
+	margin-top: 20rpx;
+	
+	&:active {
+		opacity: 0.8;
+	}
+	
+	.dark & {
+		background: linear-gradient(135deg, #3498db, #1a5276);
+		box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.4);
 	}
 }
 </style> 

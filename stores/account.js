@@ -16,7 +16,9 @@ export const useAccountStore = defineStore('account', {
     listAnimation: uni.getStorageSync('listAnimation') ?? true,
     thousandsSeparator: false,
     hideAmount: uni.getStorageSync('hideAmount') ?? false,
-    tags: []  // 添加 tags 状态
+    tags: [],  // 添加 tags 状态
+    categoryStats: {}, // 添加分类统计缓存
+    monthlyStats: {}   // 添加月度统计缓存
   }),
   
   actions: {
@@ -247,6 +249,14 @@ export const useAccountStore = defineStore('account', {
       if (savedTags) {
         this.tags = savedTags
       }
+    },
+
+    // 优化统计计算，避免重复计算
+    updateStats() {
+      // 更新分类统计缓存
+      this.categoryStats = this.computeCategoryStats()
+      // 更新月度统计缓存
+      this.monthlyStats = this.computeMonthlyStats()
     }
   },
   

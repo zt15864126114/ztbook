@@ -929,3 +929,20 @@ to {
   background-color: #3498db;
   border-radius: 1.25rem;
 }
+.share-btn[data-v-fc23ec97] {
+  width: 6.25rem;
+  height: 2.5rem;
+  line-height: 2.5rem;
+  font-size: 0.875rem;
+  color: #fff;
+  background-color: #3498db;
+  border-radius: 1.25rem;
+  margin-top: 0.625rem;
+}
+.share-btn[data-v-fc23ec97]:active {
+  opacity: 0.8;
+}
+.dark .share-btn[data-v-fc23ec97] {
+  background: linear-gradient(135deg, #3498db, #1a5276);
+  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.4);
+}

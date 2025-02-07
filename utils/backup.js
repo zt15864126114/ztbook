@@ -1,5 +1,5 @@
 // 备份数据
-export function backupData() {
+export async function backupData() {
   try {
     const data = {
       accounts: uni.getStorageSync('accounts'),
@@ -25,30 +25,33 @@ export function backupData() {
       return false
     }
     
-    // 将数据转换为字符串
-    const backupString = JSON.stringify(data)
+    const json = JSON.stringify(data)
+    const size = (json.length / 1024).toFixed(2)
     
-    // 保存备份
-    uni.setStorageSync('backup_data', data)
-    
-    // 记录备份时间
-    uni.setStorageSync('lastBackupTime', Date.now())
-    
-    // 计算数据大小(以字符串长度估算)
-    const size = (backupString.length / 1024).toFixed(2)
-    uni.showToast({
-      title: `已备份 ${size}KB 数据`,
-      icon: 'success'
+    // 保存文件
+    const fileName = `backup_${new Date().toISOString().split('T')[0]}.json`
+    return new Promise((resolve, reject) => {
+      uni.saveFile({
+        tempFilePath: URL.createObjectURL(new Blob([json], { type: 'application/json' })),
+        success(res) {
+          uni.showToast({
+            title: `已备份 ${size}KB 数据`,
+            icon: 'success'
+          })
+          resolve(res.savedFilePath)
+        },
+        fail(err) {
+          reject(err)
+        }
+      })
     })
-    
-    return true
-  } catch (error) {
-    console.error('备份失败:', error)
+  } catch (err) {
+    console.error('备份失败', err)
     uni.showToast({
-      title: '备份失败: ' + error.message,
+      title: '备份失败',
       icon: 'error'
     })
-    return false
+    throw err
   }
 }
 

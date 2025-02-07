@@ -151,4 +151,108 @@ export function analyzeBudget(bills, budget) {
     percentage: percentage.toFixed(1),
     isOverBudget: total > budget
   }
+}
+
+// 支出趋势分析
+export function analyzeExpenseTrend(accounts, period = 'month') {
+  const trends = {}
+  
+  accounts.forEach(account => {
+    const date = new Date(account.createTime)
+    let key
+    
+    switch(period) {
+      case 'day':
+        key = date.toISOString().split('T')[0]
+        break
+      case 'month':
+        key = `${date.getFullYear()}-${date.getMonth() + 1}`
+        break
+      case 'year':
+        key = date.getFullYear().toString()
+        break
+    }
+    
+    if (!trends[key]) {
+      trends[key] = {
+        total: 0,
+        count: 0,
+        categories: {}
+      }
+    }
+    
+    trends[key].total += Number(account.amount)
+    trends[key].count++
+    
+    // 分类统计
+    if (!trends[key].categories[account.category]) {
+      trends[key].categories[account.category] = 0
+    }
+    trends[key].categories[account.category] += Number(account.amount)
+  })
+  
+  return trends
+}
+
+// 消费习惯分析
+export function analyzeSpendingHabits(accounts) {
+  const habits = {
+    peakHours: new Array(24).fill(0),
+    weekdayDistribution: new Array(7).fill(0),
+    frequentCategories: {},
+    averageAmount: 0
+  }
+  
+  accounts.forEach(account => {
+    const date = new Date(account.createTime)
+    const hour = date.getHours()
+    const weekday = date.getDay()
+    
+    habits.peakHours[hour]++
+    habits.weekdayDistribution[weekday]++
+    
+    if (!habits.frequentCategories[account.category]) {
+      habits.frequentCategories[account.category] = 0
+    }
+    habits.frequentCategories[account.category]++
+  })
+  
+  // 计算平均消费金额
+  const total = accounts.reduce((sum, account) => sum + Number(account.amount), 0)
+  habits.averageAmount = total / accounts.length
+  
+  return habits
+}
+
+// 预算执行分析
+export function analyzeBudgetExecution(accounts, budget) {
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear()
+  
+  const monthlyExpenses = new Array(12).fill(0)
+  let monthlyAverage = 0
+  let budgetDeviation = 0
+  
+  accounts.forEach(account => {
+    const date = new Date(account.createTime)
+    if (date.getFullYear() === currentYear) {
+      monthlyExpenses[date.getMonth()] += Number(account.amount)
+    }
+  })
+  
+  // 计算月均支出
+  monthlyAverage = monthlyExpenses.reduce((sum, amount) => sum + amount, 0) / (currentMonth + 1)
+  
+  // 计算预算偏差
+  if (budget) {
+    budgetDeviation = ((monthlyExpenses[currentMonth] - budget) / budget) * 100
+  }
+  
+  return {
+    monthlyExpenses,
+    monthlyAverage,
+    budgetDeviation,
+    overBudgetMonths: monthlyExpenses.filter(amount => amount > budget).length
+  }
 } 

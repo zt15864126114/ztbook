@@ -168,7 +168,7 @@ export function exportToHTML(accounts) {
   }
 }
 
-// 确保导出了 exportToCSV 函数
+// 导出为CSV
 export function exportToCSV(accounts) {
   const headers = ['日期', '时间', '分类', '金额', '备注', '标签']
   const rows = accounts.map(account => [
@@ -186,4 +186,28 @@ export function exportToCSV(accounts) {
   ].join('\n')
   
   return csv
+}
+
+// 从CSV导入
+export function importFromCSV(csvContent) {
+  const lines = csvContent.split('\n')
+  const headers = lines[0].split(',')
+  const accounts = []
+  
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',')
+    if (values.length !== headers.length) continue
+    
+    const account = {
+      createTime: new Date(`${values[0]} ${values[1]}`).getTime(),
+      category: values[2],
+      amount: Number(values[3]),
+      note: values[4],
+      tags: values[5] ? values[5].split('|') : [],
+      id: Date.now() + i
+    }
+    accounts.push(account)
+  }
+  
+  return accounts
 } 
