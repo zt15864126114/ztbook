@@ -1,577 +1,804 @@
 <template>
-  <view class="container">
-    <!-- 添加分享按钮 -->
-    <view class="header-actions">
-      <button class="share-btn" @click="shareCategory">
-        <text class="iconfont icon-share"></text>
-      </button>
-    </view>
-    <!-- 分类信息头部 -->
-    <view class="category-header" :style="{ backgroundColor: categoryColor }">
-      <view class="header-actions">
-        <button class="action-btn" @click="showSearch = true">
-          <text class="iconfont icon-search"></text>
-        </button>
-        <button class="action-btn" @click="shareCategory">
-          <text class="iconfont icon-share"></text>
-        </button>
-      </view>
-      <view class="category-info">
-        <view class="icon">{{ categoryIcon }}</view>
-        <view class="details">
-          <text class="name">{{ categoryName }}</text>
-          <text class="count">共{{ bills.length }}笔支出</text>
+  <view :class="['container', darkMode ? 'dark' : '']">
+    <!-- 主内容区 -->
+    <view class="main-content">
+      <!-- 金额卡片 -->
+      <view class="amount-card" :style="{ backgroundColor: category.color }">
+        <!-- 玻璃态背景 -->
+        <view class="glass-bg"></view>
+        
+        <!-- 背景装饰 -->
+        <view class="card-decoration">
+          <!-- 光晕效果 -->
+          <view class="light-effect"></view>
+          <view class="circles">
+            <view class="circle"></view>
+            <view class="circle"></view>
+            <view class="circle"></view>
+          </view>
+          <!-- 动态渐变背景 -->
+          <view class="gradient-bg"></view>
+          <view class="pattern"></view>
         </view>
-      </view>
-      <view class="amount-info">
-        <text class="label">支出总额</text>
-        <text class="amount">{{ accountStore.currencySymbol }}{{ totalAmount }}</text>
-        <text class="average">平均 {{ accountStore.currencySymbol }}{{ averageAmount }}/笔</text>
-      </view>
-    </view>
-    
-    <!-- 搜索栏 -->
-    <view class="search-wrapper" :class="{ 'show': showSearch }">
-      <view class="search-bar">
-        <text class="iconfont icon-search search-icon"></text>
-        <input 
-          type="text"
-          class="search-input"
-          v-model="searchText"
-          placeholder="搜索备注"
-          @input="onSearch"
-          focus
-        />
-        <text 
-          class="clear-btn" 
-          v-if="searchText"
-          @click="clearSearch"
-        >✕</text>
-      </view>
-      <text class="cancel-btn" @click="cancelSearch">取消</text>
-    </view>
-    
-    <!-- 账单列表 -->
-    <scroll-view 
-      scroll-y 
-      class="bill-list"
-      :style="{ height: `calc(100vh - 200rpx)` }"
-      refresher-enabled
-      :refresher-triggered="isRefreshing"
-      @refresherrefresh="onRefresh"
-    >
-      <view class="date-group" v-for="group in groupedBills" :key="group.date">
-        <view class="date-header">
-          <text class="date">{{ group.displayDate }}</text>
-          <text class="total">{{ accountStore.currencySymbol }}{{ group.total }}</text>
+
+        <!-- 分类信息 -->
+        <view class="category-info">
+          <view class="icon-wrap">
+            <view class="icon-bg"></view>
+            <text class="icon">{{ category.icon }}</text>
+            <view class="icon-ring"></view>
+            <view class="icon-glow"></view>
+          </view>
+          <text class="name">{{ category.name }}</text>
         </view>
-        <view 
-          class="bill-item" 
-          v-for="bill in group.bills" 
-          :key="bill.id"
-          @click="showBillDetail(bill)"
-        >
-          <view class="time">{{ formatTime(bill.createTime) }}</view>
-          <view class="content">
-            <text class="remark">{{ bill.remark || '无备注' }}</text>
-            <text class="amount">{{ accountStore.currencySymbol }}{{ bill.amount }}</text>
+
+        <!-- 金额信息 -->
+        <view class="amount-section">
+          <text class="label">本月支出</text>
+          <view class="amount-wrap">
+            <text class="amount">{{ accountStore.currencySymbol }}{{ category.amount }}</text>
+            <view class="amount-glow"></view>
+          </view>
+          <view class="trend">
+            <text class="trend-label">较上月</text>
+            <text class="trend-value" :class="{ 'up': monthOverMonthChange > 0 }">
+              {{ monthOverMonthChange > 0 ? '+' : '' }}{{ monthOverMonthChange }}%
+            </text>
+          </view>
+          <view class="progress-bar">
+            <view 
+              class="bar" 
+              :style="{ width: category.percentage + '%' }"
+            >
+              <view class="bar-shine"></view>
+            </view>
+            <view class="bar-label">占支出{{ category.percentage }}%</view>
+          </view>
+        </view>
+
+        <!-- 统计信息 -->
+        <view class="stats-section">
+          <view 
+            v-for="(stat, index) in [
+              { value: totalCount, label: '笔数' },
+              { value: averagePerBill, label: '单笔均值' },
+              { value: category.percentage + '%', label: '占比' }
+            ]"
+            :key="index"
+            class="stat"
+          >
+            <view class="stat-content">
+              <text class="value">{{ stat.value }}</text>
+              <text class="label">{{ stat.label }}</text>
+            </view>
+            <view class="stat-glow"></view>
           </view>
         </view>
       </view>
-      
-      <!-- 空状态 -->
-      <view v-if="bills.length === 0" class="empty-state">
-        <image src="/static/empty.png" mode="aspectFit" class="empty-image"/>
-        <text class="empty-text">暂无账单记录</text>
+
+      <!-- 账单列表 -->
+      <view class="bills-section">
+        <view class="list-header">
+          <view class="header-left">
+            <text class="title">本月账单</text>
+            <text class="count">{{ totalCount }}笔</text>
+          </view>
+          <view class="sort-buttons">
+            <view 
+              class="sort-btn"
+              :class="{ active: currentSort === 'time' }"
+              @click="currentSort = 'time'"
+              :style="{ 
+                backgroundColor: currentSort === 'time' ? `${category.color}15` : '#f5f7fa',
+                color: currentSort === 'time' ? category.color : '#666'
+              }"
+            >
+              <text class="icon">⏱️</text>
+              <text class="text">时间</text>
+            </view>
+            <view 
+              class="sort-btn"
+              :class="{ active: currentSort === 'amount' }"
+              @click="currentSort = 'amount'"
+              :style="{ 
+                backgroundColor: currentSort === 'amount' ? `${category.color}15` : '#f5f7fa',
+                color: currentSort === 'amount' ? category.color : '#666'
+              }"
+            >
+              <text class="icon">💰</text>
+              <text class="text">金额</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="bill-groups">
+          <template v-if="monthlyBills.length">
+            <view 
+              v-for="group in monthlyBills" 
+              :key="group.title" 
+              class="bill-group"
+            >
+              <view class="group-title">
+                <view class="date-wrap">
+                  <text class="dot"></text>
+                  <text class="date">{{ group.title }}</text>
+                  <text class="count">{{ group.bills.length }}笔</text>
+                </view>
+                <text class="total">{{ accountStore.currencySymbol }}{{ calculateGroupTotal(group.bills) }}</text>
+              </view>
+              
+              <view 
+                v-for="bill in group.bills"
+                :key="bill.id"
+                class="bill-item"
+                hover-class="bill-item-hover"
+                @click="showBillDetail(bill)"
+              >
+                <view class="time">{{ formatTime(bill.createTime) }}</view>
+                <view class="content">
+                  <text class="note">{{ bill.note || '无备注' }}</text>
+                  <view class="tags" v-if="bill.tags?.length">
+                    <text 
+                      v-for="tag in bill.tags" 
+                      :key="tag" 
+                      class="tag"
+                      :style="{ 
+                        backgroundColor: `${category.color}15`,
+                        color: category.color 
+                      }"
+                    >{{ tag }}</text>
+                  </view>
+                </view>
+                <text class="amount">{{ accountStore.currencySymbol }}{{ bill.amount }}</text>
+              </view>
+            </view>
+          </template>
+          <template v-else>
+            <view class="empty-state">
+              <text class="icon">📝</text>
+              <text class="empty-text">本月暂无记录</text>
+            </view>
+          </template>
+        </view>
       </view>
-    </scroll-view>
+    </view>
   </view>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useAccountStore } from '@/stores/account'
-import { formatDateForDisplay, formatTime, formatDateTime } from '@/utils/date'
+import { useAppStore } from '@/stores/app'
+import { formatDate, formatTime, formatDayOfWeek } from '@/utils/date'
 
-const categoryName = ref('')
-const categoryIcon = ref('')
-const categoryColor = ref('')
-const bills = ref([])
-const isRefreshing = ref(false)
-const showSearch = ref(false)
-const searchText = ref('')
-const originalBills = ref([])
+const accountStore = useAccountStore()
+const appStore = useAppStore()
+const darkMode = computed(() => appStore.darkMode)
 
 // 获取路由参数
-const query = defineProps({
-  category: String,
-  year: Number,
-  month: Number
-})
-
-// 计算总金额
-const totalAmount = computed(() => {
-  return bills.value
-    .reduce((sum, bill) => sum + Number(bill.amount), 0)
-    .toFixed(2)
-})
-
-// 计算平均金额
-const averageAmount = computed(() => {
-  if (bills.value.length === 0) return '0.00'
-  return (Number(totalAmount.value) / bills.value.length).toFixed(2)
-})
-
-// 按日期分组的账单
-const groupedBills = computed(() => {
-  const groups = {}
-  bills.value.forEach(bill => {
-    const date = formatDate(bill.createTime)
-    if (!groups[date]) {
-      groups[date] = {
-        date,
-        displayDate: formatDateForDisplay(date),
-        bills: [],
-        total: 0
-      }
-    }
-    groups[date].bills.push(bill)
-    groups[date].total += Number(bill.amount)
-  })
-  
-  return Object.values(groups)
-    .map(group => ({
-      ...group,
-      total: group.total.toFixed(2)
-    }))
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-})
-
-// 获取分类图标
-function getCategoryIcon(category) {
-  const icons = {
-    '餐饮': '🍚',
-    '交通': '🚗',
-    '购物': '🛒',
-    '娱乐': '🎮',
-    '居家': '🏠'
-  }
-  return icons[category] || '💰'
-}
-
-// 获取分类颜色
-function getCategoryColor(category) {
-  const colors = {
-    '餐饮': '#FF9800',
-    '交通': '#2196F3',
-    '购物': '#E91E63',
-    '娱乐': '#9C27B0',
-    '居家': '#4CAF50'
-  }
-  return colors[category] || '#999999'
-}
-
-// 显示账单详情
-function showBillDetail(bill) {
-  uni.showActionSheet({
-    itemList: ['查看详情', '编辑账单', '删除账单'],
-    success: (res) => {
-      switch(res.tapIndex) {
-        case 0:
-          showBillInfo(bill)
-          break
-        case 1:
-          editBill(bill)
-          break
-        case 2:
-          deleteBill(bill)
-          break
-      }
-    }
-  })
-}
-
-// 显示账单信息
-function showBillInfo(bill) {
-  uni.showModal({
-    title: '账单详情',
-    content: `金额：¥${bill.amount}\n时间：${formatDateTime(bill.createTime)}\n备注：${bill.remark || '无'}`,
-    showCancel: false,
-    confirmText: '知道了'
-  })
-}
-
-// 编辑账单
-function editBill(bill) {
-  uni.navigateTo({
-    url: `/pages/add/add?id=${bill.id}&edit=true`
-  })
-}
-
-// 删除账单
-function deleteBill(bill) {
-  uni.showModal({
-    title: '确认删除',
-    content: '确定要删除这笔账单吗？',
-    success: (res) => {
-      if (res.confirm) {
-        const accountStore = useAccountStore()
-        accountStore.deleteBill(bill.id)
-        // 刷新账单列表
-        bills.value = bills.value.filter(item => item.id !== bill.id)
-        uni.showToast({
-          title: '删除成功',
-          icon: 'success'
-        })
-      }
-    }
-  })
-}
-
-// 分享分类账单
-function shareCategory() {
-  const summary = `${categoryName.value}类账单统计\n` +
-    `总支出：${accountStore.currencySymbol}${totalAmount.value}\n` +
-    `共${bills.value.length}笔\n` +
-    `平均每笔：${accountStore.currencySymbol}${averageAmount.value}`
-    
-  // #ifdef H5
-  if (navigator.share) {
-    navigator.share({
-      title: '账单分类明细',
-      text: summary
-    }).catch(err => {
-      console.log('分享失败:', err)
-    })
-  } else {
-    uni.setClipboardData({
-      data: summary,
-      success: () => {
-        uni.showToast({
-          title: '已复制到剪贴板',
-          icon: 'success'
-        })
-      }
-    })
-  }
-  // #endif
-  
-  // #ifdef MP
-  uni.showModal({
-    title: '分享统计',
-    content: summary,
-    confirmText: '复制',
-    success: (res) => {
-      if (res.confirm) {
-        uni.setClipboardData({
-          data: summary,
-          success: () => {
-            uni.showToast({
-              title: '已复制到剪贴板',
-              icon: 'success'
-            })
-          }
-        })
-      }
-    }
-  })
-  // #endif
-}
-
-// 下拉刷新
-async function onRefresh() {
-  isRefreshing.value = true
-  
-  // 重新获取账单数据
-  const accountStore = useAccountStore()
-  bills.value = accountStore.accounts.filter(bill => 
-    bill.category === categoryName.value &&
-    new Date(bill.createTime).getFullYear() === Number(query.year) &&
-    new Date(bill.createTime).getMonth() + 1 === Number(query.month)
-  )
-  
-  setTimeout(() => {
-    isRefreshing.value = false
-    uni.showToast({
-      title: '刷新成功',
-      icon: 'success'
-    })
-  }, 500)
-}
-
-// 清除搜索
-function clearSearch() {
-  searchText.value = ''
-  bills.value = originalBills.value
-}
-
-// 取消搜索
-function cancelSearch() {
-  showSearch.value = false
-  clearSearch()
-}
-
-// 搜索功能
-function onSearch() {
-  if (!searchText.value.trim()) {
-    bills.value = originalBills.value
-    return
-  }
-  
-  const keyword = searchText.value.toLowerCase().trim()
-  bills.value = originalBills.value.filter(bill => 
-    bill.remark?.toLowerCase().includes(keyword) ||
-    bill.amount.toString().includes(keyword)
-  )
-}
+const category = ref({})
 
 onMounted(() => {
   const pages = getCurrentPages()
   const currentPage = pages[pages.length - 1]
-  const options = currentPage.$page?.options
-  
-  if (options) {
-    // 设置页面标题
-    uni.setNavigationBarTitle({
-      title: options.category + '的支出明细'
-    })
-    
-    // 初始化分类信息
-    categoryName.value = options.category
-    categoryIcon.value = getCategoryIcon(options.category)
-    categoryColor.value = getCategoryColor(options.category)
-    
-    // 从全局状态获取账单数据
-    const accountStore = useAccountStore()
-    bills.value = accountStore.accounts.filter(bill => 
-      bill.category === options.category &&
-      new Date(bill.createTime).getFullYear() === Number(options.year) &&
-      new Date(bill.createTime).getMonth() + 1 === Number(options.month)
-    )
-    originalBills.value = [...bills.value]
+  const options = currentPage.$page.options
+  if (options.category) {
+    category.value = JSON.parse(decodeURIComponent(options.category))
   }
+})
+
+// 返回上一页
+function goBack() {
+  uni.navigateBack()
+}
+
+// 显示账单详情
+function showBillDetail(bill) {
+  uni.showModal({
+    title: formatDate(bill.createTime),
+    content: `金额：${accountStore.currencySymbol}${bill.amount}\n${bill.note ? '备注：' + bill.note : ''}${bill.tags?.length ? '\n标签：' + bill.tags.join('、') : ''}`,
+    confirmText: '编辑',
+    cancelText: '关闭',
+    success: (res) => {
+      if (res.confirm) {
+        uni.navigateTo({
+          url: `/pages/add/add?id=${bill.id}`
+        })
+      }
+    }
+  })
+}
+
+// 获取本月账单并排序
+const monthlyBills = computed(() => {
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear()
+  
+  const bills = accountStore.accounts
+    .filter(bill => {
+      const date = new Date(bill.createTime)
+      return bill.category === category.value.name &&
+             date.getMonth() === currentMonth &&
+             date.getFullYear() === currentYear
+    })
+    // 根据排序方式排序
+    .sort((a, b) => {
+      if (currentSort.value === 'time') {
+        return new Date(b.createTime) - new Date(a.createTime)
+      } else {
+        return Number(b.amount) - Number(a.amount)
+      }
+    })
+
+  // 按日期分组
+  return bills.reduce((groups, bill) => {
+    const date = new Date(bill.createTime)
+    const dayStr = `${date.getMonth() + 1}月${date.getDate()}日`
+    
+    const group = groups.find(g => g.title === dayStr)
+    if (group) {
+      group.bills.push(bill)
+    } else {
+      groups.push({
+        title: dayStr,
+        bills: [bill]
+      })
+    }
+    return groups
+  }, [])
+})
+
+// 排序选项
+const sortOptions = [
+  { type: 'time', name: '按时间' },
+  { type: 'amount', name: '按金额' }
+]
+const currentSort = ref('time')
+
+// 计算分组总金额
+function calculateGroupTotal(bills) {
+  return bills.reduce((sum, bill) => sum + Number(bill.amount), 0).toFixed(2)
+}
+
+// 计算总笔数
+const totalCount = computed(() => {
+  return monthlyBills.value.reduce((sum, group) => sum + group.bills.length, 0)
+})
+
+// 计算平均每笔金额
+const averagePerBill = computed(() => {
+  const totalAmount = monthlyBills.value.reduce((sum, group) => sum + group.bills.reduce((sum, bill) => sum + Number(bill.amount), 0), 0)
+  return (totalAmount / totalCount.value).toFixed(2)
+})
+
+// 计算月度变化
+const monthOverMonthChange = computed(() => {
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear()
+  
+  const bills = accountStore.accounts
+    .filter(bill => {
+      const date = new Date(bill.createTime)
+      return bill.category === category.value.name &&
+             date.getMonth() === currentMonth &&
+             date.getFullYear() === currentYear
+    })
+    .reduce((sum, bill) => sum + Number(bill.amount), 0)
+  
+  const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1
+  const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear
+  
+  const previousBills = accountStore.accounts
+    .filter(bill => {
+      const date = new Date(bill.createTime)
+      return bill.category === category.value.name &&
+             date.getMonth() === previousMonth &&
+             date.getFullYear() === previousYear
+    })
+    .reduce((sum, bill) => sum + Number(bill.amount), 0)
+  
+  if (previousBills === 0) return 0
+  
+  const change = ((bills - previousBills) / previousBills) * 100
+  return change.toFixed(2)
 })
 </script>
 
 <style lang="scss" scoped>
 .container {
   min-height: 100vh;
-  background-color: #f7f8fa;
+  background: #f8f9fa;
+  padding: 24rpx;
+  
+  &.dark {
+    background: #121212;
+  }
 }
 
-.header-actions {
-  position: absolute;
-  top: 30rpx;
-  right: 30rpx;
-  z-index: 1;
-  display: flex;
-  gap: 20rpx;
+.amount-card {
+  padding: 40rpx 32rpx;
+  border-radius: 24rpx;
+  color: #fff;
+  margin-bottom: 24rpx;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.15);
   
-  .action-btn {
-    background: none;
-    border: none;
-    padding: 0;
-    margin: 0;
-    line-height: 1;
+  .glass-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.2),
+      rgba(255, 255, 255, 0.1)
+    );
+    backdrop-filter: blur(10px);
+  }
+
+  .card-decoration {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
     
-    &::after {
-      display: none;
+    .light-effect {
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(
+        circle at center,
+        rgba(255, 255, 255, 0.2) 0%,
+        transparent 70%
+      );
+      animation: rotate 15s linear infinite;
     }
     
-    .iconfont {
+    .gradient-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+      );
+      animation: slide 3s ease-in-out infinite alternate;
+    }
+    
+    .circles {
+      position: absolute;
+      right: -100rpx;
+      top: -100rpx;
+      
+      .circle {
+        position: absolute;
+        border: 2rpx solid rgba(255,255,255,0.1);
+        border-radius: 50%;
+        
+        &:nth-child(1) {
+          width: 300rpx;
+          height: 300rpx;
+        }
+        
+        &:nth-child(2) {
+          width: 400rpx;
+          height: 400rpx;
+        }
+        
+        &:nth-child(3) {
+          width: 500rpx;
+          height: 500rpx;
+        }
+      }
+    }
+    
+    .pattern {
+      position: absolute;
+      inset: 0;
+      opacity: 0.05;
+      background-image: radial-gradient(circle at 2rpx 2rpx, #fff 1rpx, transparent 0);
+      background-size: 20rpx 20rpx;
+    }
+  }
+
+  .category-info {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+    margin-bottom: 32rpx;
+    
+    .icon-wrap {
+      .icon-bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          circle at center,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        filter: blur(5px);
+      }
+      
+      .icon {
+        position: relative;
+        z-index: 1;
+        font-size: 40rpx;
+        filter: drop-shadow(0 2rpx 4rpx rgba(0,0,0,0.1));
+      }
+      
+      .icon-ring {
+        position: absolute;
+        inset: -6rpx;
+        border: 2rpx solid rgba(255,255,255,0.2);
+        border-radius: 50%;
+      }
+      
+      .icon-glow {
+        position: absolute;
+        inset: -10rpx;
+        background: radial-gradient(
+          circle at center,
+          rgba(255,255,255,0.3) 0%,
+          transparent 70%
+        );
+        animation: glow 2s ease-in-out infinite;
+      }
+    }
+    
+    .name {
       font-size: 36rpx;
-      color: #fff;
+      font-weight: 600;
+      text-shadow: 0 2rpx 4rpx rgba(0,0,0,0.1);
+    }
+  }
+
+  .amount-section {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 32rpx;
+    
+    .label {
+      font-size: 28rpx;
+      opacity: 0.9;
+    }
+    
+    .amount-wrap {
+      position: relative;
+      display: inline-block;
+      
+      .amount {
+        position: relative;
+        z-index: 1;
+      }
+      
+      .amount-glow {
+        position: absolute;
+        inset: -10rpx;
+        background: radial-gradient(
+          circle at center,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        filter: blur(10px);
+      }
+    }
+    
+    .trend {
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
+      margin-bottom: 16rpx;
+      
+      .trend-label {
+        font-size: 24rpx;
+        opacity: 0.8;
+      }
+      
+      .trend-value {
+        font-size: 24rpx;
+        color: #2ecc71;
+        
+        &.up {
+          color: #e74c3c;
+        }
+      }
+    }
+    
+    .progress-bar {
+      height: 4rpx;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2rpx;
+      margin: 20rpx 0 8rpx;
+      overflow: hidden;
+      position: relative;
+      
+      .bar {
+        height: 100%;
+        background: #fff;
+        border-radius: 2rpx;
+        transition: width 0.6s ease;
+        box-shadow: 0 0 8rpx rgba(255,255,255,0.5);
+      }
+      
+      .bar-label {
+        font-size: 24rpx;
+        opacity: 0.8;
+        margin-top: 8rpx;
+      }
+      
+      .bar-shine {
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 50%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        animation: shine 2s ease-in-out infinite;
+      }
+    }
+  }
+
+  .stats-section {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    padding-top: 24rpx;
+    border-top: 1rpx solid rgba(255,255,255,0.1);
+    
+    .stat {
+      text-align: center;
+      
+      .value {
+        font-size: 32rpx;
+        font-weight: 500;
+        display: block;
+        margin-bottom: 4rpx;
+      }
+      
+      .label {
+        font-size: 24rpx;
+        opacity: 0.8;
+      }
+      
+      .stat-content {
+        position: relative;
+        z-index: 1;
+      }
+      
+      .stat-glow {
+        position: absolute;
+        inset: -5rpx;
+        background: radial-gradient(
+          circle at center,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        filter: blur(5px);
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      
+      &:hover .stat-glow {
+        opacity: 1;
+      }
+    }
+    
+    .divider {
+      width: 1rpx;
+      height: 40rpx;
+      background: rgba(255,255,255,0.2);
+      margin-top: 8rpx;
     }
   }
 }
 
-.category-header {
-  padding: 40rpx 30rpx;
-  color: #fff;
+.bills-section {
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
   
-  .category-info {
+  .list-header {
+    padding: 32rpx;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    margin-bottom: 30rpx;
     
-    .icon {
-      font-size: 48rpx;
-      margin-right: 20rpx;
-    }
-    
-    .details {
-      .name {
-        font-size: 36rpx;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
+      
+      .title {
+        font-size: 32rpx;
         font-weight: 600;
-        margin-bottom: 4rpx;
       }
       
       .count {
         font-size: 24rpx;
-        opacity: 0.9;
+        color: #999;
+        background: #f5f7fa;
+        padding: 4rpx 12rpx;
+        border-radius: 100rpx;
+      }
+    }
+    
+    .sort-buttons {
+      display: flex;
+      gap: 12rpx;
+      
+      .sort-btn {
+        display: flex;
+        align-items: center;
+        gap: 6rpx;
+        padding: 12rpx 20rpx;
+        border-radius: 100rpx;
+        transition: all 0.3s;
+        
+        .icon {
+          font-size: 24rpx;
+        }
+        
+        .text {
+          font-size: 24rpx;
+        }
       }
     }
   }
   
-  .amount-info {
-    .label {
-      font-size: 24rpx;
-      opacity: 0.9;
-      margin-bottom: 4rpx;
-    }
-    
-    .amount {
-      font-size: 48rpx;
-      font-weight: 600;
-      margin-bottom: 4rpx;
-    }
-    
-    .average {
-      font-size: 24rpx;
-      opacity: 0.9;
-    }
-  }
-}
-
-.search-wrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background-color: #fff;
-  padding: 20rpx 30rpx;
-  display: flex;
-  align-items: center;
-  transform: translateY(-100%);
-  transition: transform 0.3s ease;
-  z-index: 100;
-  
-  &.show {
-    transform: translateY(0);
-  }
-  
-  .search-bar {
-    flex: 1;
-    height: 72rpx;
-    background-color: #f5f5f5;
-    border-radius: 36rpx;
-    padding: 0 20rpx;
-    margin-right: 20rpx;
-    display: flex;
-    align-items: center;
-    
-    .search-icon {
-      font-size: 32rpx;
-      color: #999;
-      margin-right: 10rpx;
-    }
-    
-    .search-input {
-      flex: 1;
-      height: 100%;
-      font-size: 28rpx;
-    }
-    
-    .clear-btn {
-      padding: 10rpx;
-      color: #999;
-      font-size: 24rpx;
-    }
-  }
-  
-  .cancel-btn {
-    padding: 10rpx;
-    font-size: 28rpx;
-    color: #666;
-    
-    &:active {
-      opacity: 0.7;
-    }
-  }
-}
-
-.bill-list {
-  padding: 24rpx;
-  
-  .date-group {
-    margin-bottom: 24rpx;
-    
-    .date-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16rpx 0;
-      
-      .date {
-        font-size: 28rpx;
+  .bill-groups {
+    .bill-group {
+      .group-title {
+        padding: 24rpx 32rpx;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
         color: #666;
       }
       
-      .total {
-        font-size: 28rpx;
-        color: #333;
-        font-weight: 500;
+      .bill-item {
+        padding: 32rpx;
+        display: flex;
+        align-items: center;
+        border-bottom: 1rpx solid #f0f0f0;
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        &:active {
+          background-color: #f8f9fa;
+        }
+        
+        .time {
+          width: 120rpx;
+          font-size: 26rpx;
+          color: #999;
+        }
+        
+        .content {
+          flex: 1;
+          margin: 0 24rpx;
+          
+          .note {
+            font-size: 30rpx;
+            margin-bottom: 8rpx;
+          }
+          
+          .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12rpx;
+            
+            .tag {
+              font-size: 24rpx;
+              padding: 4rpx 16rpx;
+              background: #f8f9fa;
+              border-radius: 100rpx;
+            }
+          }
+        }
+        
+        .amount {
+          font-size: 32rpx;
+          font-weight: 500;
+          min-width: 140rpx;
+          text-align: right;
+        }
       }
-    }
-  }
-  
-  .bill-item {
-    background-color: #fff;
-    border-radius: 12rpx;
-    padding: 24rpx;
-    margin-bottom: 16rpx;
-    box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
-    
-    .time {
-      font-size: 24rpx;
-      color: #999;
-      margin-bottom: 8rpx;
-    }
-    
-    .content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      
-      .remark {
-        font-size: 28rpx;
-        color: #333;
-      }
-      
-      .amount {
-        font-size: 32rpx;
-        color: #333;
-        font-weight: 500;
-      }
-    }
-    
-    &:active {
-      opacity: 0.7;
     }
   }
 }
 
 .empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 100rpx 0;
-  
-  .empty-image {
-    width: 200rpx;
-    height: 200rpx;
-    margin-bottom: 20rpx;
-  }
+  padding: 48rpx 0;
+  text-align: center;
   
   .empty-text {
     font-size: 28rpx;
     color: #999;
   }
+  
+  .dark & {
+    .empty-text {
+      color: #666;
+    }
+  }
 }
 
-// 当搜索栏显示时，调整列表位置
-.search-wrapper.show + .bill-list {
-  padding-top: 112rpx;
+// 深色模式样式
+.dark {
+  .bills-section {
+    background: #1e1e1e;
+    box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
+    
+    .list-header {
+      .header-left .count {
+        background: #2d2d2d;
+        color: #666;
+      }
+      
+      .sort-buttons .sort-btn {
+        background: #2d2d2d;
+        
+        .text {
+          color: #888;
+        }
+        
+        &.active {
+          background: rgba(255, 255, 255, 0.1);
+          
+          .text {
+            color: #fff;
+          }
+        }
+      }
+    }
+    
+    .group-title .date-wrap .count {
+      background: #2d2d2d;
+      color: #666;
+    }
+    
+    .bill-item {
+      border-color: #2d2d2d;
+      
+      &:active {
+        background-color: #2d2d2d;
+      }
+    }
+  }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slide {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(50%); }
+}
+
+@keyframes shine {
+  from { left: -100%; }
+  to { left: 200%; }
+}
+
+@keyframes glow {
+  0% { opacity: 0.5; }
+  50% { opacity: 0.3; }
+  100% { opacity: 0.5; }
 }
 </style> 

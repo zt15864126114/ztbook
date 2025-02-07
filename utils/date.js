@@ -18,9 +18,8 @@ export function formatDateForDisplay(dateStr) {
 
 // 格式化日期为 YYYY-MM-DD
 export function formatDate(date) {
-	if (typeof date === 'string') {
-		date = new Date(date)
-	}
+	if (!date) return ''
+	date = new Date(date)
 	const year = date.getFullYear()
 	const month = String(date.getMonth() + 1).padStart(2, '0')
 	const day = String(date.getDate()).padStart(2, '0')
@@ -29,9 +28,8 @@ export function formatDate(date) {
 
 // 格式化时间为 HH:mm
 export function formatTime(date) {
-	if (typeof date === 'string') {
-		date = new Date(date)
-	}
+	if (!date) return ''
+	date = new Date(date)
 	const hours = String(date.getHours()).padStart(2, '0')
 	const minutes = String(date.getMinutes()).padStart(2, '0')
 	return `${hours}:${minutes}`
@@ -71,4 +69,12 @@ export function getLastMonth() {
 		year: lastMonth.year(),
 		month: lastMonth.month() + 1
 	}
-} 
+}
+
+// 格式化星期几
+export function formatDayOfWeek(date) {
+	if (!date) return ''
+	date = new Date(date)
+	const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+	return days[date.getDay()]
+}

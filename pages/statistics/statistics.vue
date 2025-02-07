@@ -150,6 +150,22 @@
 			canvas-id="shareCanvas"
 			style="width: 750px; height: 1200px; position: fixed; left: -9999px;"
 		></canvas>
+		
+		<!-- 预算进度 -->
+		<view class="budget-section" v-if="budgetInfo">
+			<view class="budget-header">
+				<text class="title">预算使用</text>
+				<text class="amount">{{ accountStore.currencySymbol }}{{ budgetInfo.remaining.toFixed(2) }}</text>
+			</view>
+			<progress 
+				:percent="budgetInfo.percentage" 
+				:stroke-width="8"
+				:color="budgetInfo.percentage > 100 ? '#e74c3c' : '#3498db'"
+			/>
+			<text class="budget-text">
+				{{ budgetInfo.percentage > 100 ? '已超出预算' : `已使用${budgetInfo.percentage.toFixed(1)}%` }}
+			</text>
+		</view>
 	</view>
 </template>
 
@@ -162,6 +178,7 @@ import { formatDate, getCurrentMonth, getCurrentYear } from '@/utils/date'
 import { useVirtualList } from '@/composables/useVirtualList'
 import { useGesture } from '@/composables/useGesture'
 import { generateShareImage } from '@/utils/share'
+import { checkBudgetAndNotify, getBudgetUsage } from '@/utils/budget'
 
 const accountStore = useAccountStore()
 const appStore = useAppStore()
@@ -686,11 +703,77 @@ watch(() => darkMode.value, () => {
 // 显示分类详情
 function showCategoryDetail(category) {
 	uni.showModal({
-		title: category.name + '支出明细',
-		content: `共${category.count}笔支出\n占比${category.percentage}%\n平均每笔${accountStore.currencySymbol}${(Number(category.amount) / category.count).toFixed(2)}`,
+		title: category.name,
+		content: `总支出：${accountStore.currencySymbol}${category.amount}\n占比：${category.percentage}%\n笔数：${category.count}笔\n平均：${accountStore.currencySymbol}${(Number(category.amount) / category.count).toFixed(2)}`,
 		showCancel: false,
-		confirmText: '知道了'
+		confirmText: '查看详情',
+		success: (res) => {
+			if (res.confirm) {
+				// 跳转到分类详情页面
+				uni.navigateTo({
+					url: `/pages/category-detail/category-detail?category=${encodeURIComponent(JSON.stringify({
+						name: category.name,
+						amount: category.amount,
+						percentage: category.percentage,
+						count: category.count,
+						color: category.color,
+						icon: category.icon,
+						year: selectedYear.value,
+						month: selectedMonth.value
+					}))}`
+				})
+			}
+		}
 	})
+}
+
+// 生成趋势图表的HTML
+function generateTrendBars(categoryName) {
+	const last7Days = []
+	const now = new Date()
+	for (let i = 6; i >= 0; i--) {
+		const date = new Date(now)
+		date.setDate(date.getDate() - i)
+		last7Days.push(date)
+	}
+	
+	const dayAmounts = last7Days.map(date => {
+		const dayBills = monthlyBills.value.filter(bill => {
+			const billDate = new Date(bill.createTime)
+			return bill.category === categoryName &&
+				   billDate.getDate() === date.getDate()
+		})
+		return dayBills.reduce((sum, bill) => sum + Number(bill.amount), 0)
+	})
+	
+	const maxAmount = Math.max(...dayAmounts, 1)
+	
+	return dayAmounts.map((amount, index) => `
+		<view class="bar-item">
+			<view class="bar" style="height: ${(amount / maxAmount * 100)}%"></view>
+			<text class="day">${last7Days[index].getDate()}日</text>
+		</view>
+	`).join('')
+}
+
+// 生成最近记录的HTML
+function generateRecentRecords(categoryName) {
+	const records = monthlyBills.value
+		.filter(bill => bill.category === categoryName)
+		.sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+		.slice(0, 3)
+	
+	if (!records.length) return '<text class="empty-text">本月暂无记录</text>'
+	
+	return records.map(record => `
+		<view class="record-item">
+			<view class="record-info">
+				<text class="date">${formatDate(record.createTime)}</text>
+				${record.note ? `<text class="note">${record.note}</text>` : ''}
+			</view>
+			<text class="amount">${accountStore.currencySymbol}${Number(record.amount).toFixed(2)}</text>
+		</view>
+	`).join('')
 }
 
 // 添加分类账单列表功能
@@ -709,6 +792,7 @@ function goToAdd() {
 onShow(() => {
 	// 每次页面显示时刷新数据
 	accountStore.refresh()
+	checkBudgetAndNotify()
 })
 
 // 在账单列表中使用虚拟列表
@@ -782,6 +866,9 @@ async function shareStatistics() {
 		uni.hideLoading()
 	}
 }
+
+// 获取预算使用情况
+const budgetInfo = computed(() => getBudgetUsage())
 </script>
 
 <style lang="scss" scoped>
@@ -878,7 +965,7 @@ async function shareStatistics() {
 							}
 							
 							.category-icon {
-								box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.3);
+								box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.3);
 							}
 							
 							.category-detail {
@@ -1272,6 +1359,247 @@ async function shareStatistics() {
 	.dark & {
 		background: linear-gradient(135deg, #3498db, #1a5276);
 		box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.4);
+	}
+}
+
+.budget-section {
+	background-color: #fff;
+	border-radius: 16rpx;
+	padding: 30rpx;
+	margin-bottom: 24rpx;
+	
+	.budget-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 20rpx;
+		
+		.title {
+			font-size: 28rpx;
+			color: #333;
+		}
+		
+		.amount {
+			font-size: 32rpx;
+			color: #3498db;
+			font-weight: bold;
+		}
+	}
+	
+	.budget-text {
+		font-size: 24rpx;
+		color: #666;
+		margin-top: 10rpx;
+	}
+	
+	&.dark {
+		background-color: #1e1e1e;
+		
+		.title {
+			color: #eee;
+		}
+		
+		.amount {
+			color: #3498db;
+		}
+		
+		.budget-text {
+			color: #888;
+		}
+	}
+}
+
+:deep(.category-detail-modal) {
+	.header {
+		display: flex;
+		align-items: center;
+		margin-bottom: 30rpx;
+		
+		.icon {
+			width: 80rpx;
+			height: 80rpx;
+			border-radius: 20rpx;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 40rpx;
+			margin-right: 20rpx;
+			box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.1);
+		}
+		
+		.name {
+			font-size: 36rpx;
+			font-weight: bold;
+			color: #333;
+		}
+	}
+	
+	.info-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 20rpx;
+		margin-bottom: 30rpx;
+		
+		.info-item {
+			background-color: #f5f5f5;
+			padding: 20rpx;
+			border-radius: 12rpx;
+			
+			.label {
+				font-size: 24rpx;
+				color: #666;
+				margin-bottom: 8rpx;
+				display: block;
+			}
+			
+			.value {
+				font-size: 32rpx;
+				color: #333;
+				font-weight: 600;
+			}
+		}
+	}
+	
+	.trend-chart {
+		margin-bottom: 30rpx;
+		
+		.chart-title {
+			font-size: 28rpx;
+			color: #666;
+			margin-bottom: 16rpx;
+			display: block;
+		}
+		
+		.chart-bars {
+			display: flex;
+			align-items: flex-end;
+			height: 160rpx;
+			padding: 20rpx 0;
+			
+			.bar-item {
+				flex: 1;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				
+				.bar {
+					width: 16rpx;
+					background-color: #3498db;
+					border-radius: 8rpx;
+					transition: height 0.3s ease;
+				}
+				
+				.day {
+					font-size: 22rpx;
+					color: #999;
+					margin-top: 8rpx;
+				}
+			}
+		}
+	}
+	
+	.recent-records {
+		.section-title {
+			font-size: 28rpx;
+			color: #666;
+			margin-bottom: 16rpx;
+			display: block;
+		}
+		
+		.record-item {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 16rpx 0;
+			border-bottom: 1rpx solid #eee;
+			
+			&:last-child {
+				border-bottom: none;
+			}
+			
+			.record-info {
+				.date {
+					font-size: 26rpx;
+					color: #333;
+				}
+				
+				.note {
+					font-size: 24rpx;
+					color: #999;
+					margin-left: 16rpx;
+				}
+			}
+			
+			.amount {
+				font-size: 30rpx;
+				color: #333;
+				font-weight: 500;
+			}
+		}
+		
+		.empty-text {
+			font-size: 26rpx;
+			color: #999;
+			text-align: center;
+			display: block;
+			padding: 30rpx 0;
+		}
+	}
+	
+	&.dark {
+		.header .name {
+			color: #eee;
+		}
+		
+		.info-grid .info-item {
+			background-color: #2d2d2d;
+			
+			.label {
+				color: #888;
+			}
+			
+			.value {
+				color: #eee;
+			}
+		}
+		
+		.trend-chart {
+			.chart-title {
+				color: #888;
+			}
+			
+			.bar-item .day {
+				color: #666;
+			}
+		}
+		
+		.recent-records {
+			.section-title {
+				color: #888;
+			}
+			
+			.record-item {
+				border-color: #2d2d2d;
+				
+				.record-info {
+					.date {
+						color: #eee;
+					}
+					
+					.note {
+						color: #666;
+					}
+				}
+				
+				.amount {
+					color: #eee;
+				}
+			}
+			
+			.empty-text {
+				color: #666;
+			}
+		}
 	}
 }
 </style> 

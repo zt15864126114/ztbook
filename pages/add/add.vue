@@ -128,6 +128,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAccountStore } from '@/stores/account'
 import { useAppStore } from '@/stores/app'
 import { formatDate, formatTime } from '@/utils/date'
+import { checkBudgetAndNotify } from '@/utils/budget'
 
 const accountStore = useAccountStore()
 const appStore = useAppStore()
@@ -260,6 +261,9 @@ function handleSubmit() {
     title: editId.value ? '修改成功' : '添加成功',
     icon: 'success'
   })
+  
+  // 添加账单后检查预算
+  checkBudgetAndNotify()
   
   uni.navigateBack()
 }

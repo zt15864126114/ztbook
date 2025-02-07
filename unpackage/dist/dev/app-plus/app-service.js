@@ -1781,34 +1781,19 @@ This will fail in production.`);
       }
     }
   });
-  function getDayjs() {
-    const app = getApp();
-    return app.$vm.$.appContext.config.globalProperties.$dayjs;
-  }
-  function formatDateForDisplay(dateStr) {
-    const dayjs2 = getDayjs();
-    const date = dayjs2(dateStr);
-    const today = dayjs2().format("YYYY-MM-DD");
-    const yesterday = dayjs2().subtract(1, "day").format("YYYY-MM-DD");
-    if (dateStr === today)
-      return "今天";
-    if (dateStr === yesterday)
-      return "昨天";
-    return date.format("M月D日");
-  }
-  function formatDate$1(date) {
-    if (typeof date === "string") {
-      date = new Date(date);
-    }
+  function formatDate(date) {
+    if (!date)
+      return "";
+    date = new Date(date);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }
   function formatTime(date) {
-    if (typeof date === "string") {
-      date = new Date(date);
-    }
+    if (!date)
+      return "";
+    date = new Date(date);
     const hours = String(date.getHours()).padStart(2, "0");
     const minutes = String(date.getMinutes()).padStart(2, "0");
     return `${hours}:${minutes}`;
@@ -1819,8 +1804,12 @@ This will fail in production.`);
   function getCurrentMonth() {
     return (/* @__PURE__ */ new Date()).getMonth() + 1;
   }
-  function formatDateTime$2(date) {
-    return `${formatDate$1(date)} ${formatTime(date)}`;
+  function formatDayOfWeek(date) {
+    if (!date)
+      return "";
+    date = new Date(date);
+    const days = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+    return days[date.getDay()];
   }
   const _export_sfc = (sfc, props) => {
     const target = sfc.__vccOpts || sfc;
@@ -1833,13 +1822,13 @@ This will fail in production.`);
     __name: "index",
     setup(__props, { expose: __expose }) {
       __expose();
-      const accountStore2 = useAccountStore();
+      const accountStore = useAccountStore();
       const appStore = useAppStore();
       const darkMode = vue.computed(() => appStore.darkMode);
       const currentMonth = vue.ref(getCurrentMonth());
       const currentYear = vue.ref(getCurrentYear());
       const monthlyBills = vue.computed(() => {
-        return accountStore2.accounts.filter((item) => {
+        return accountStore.accounts.filter((item) => {
           const date = new Date(item.createTime);
           return date.getMonth() + 1 === currentMonth.value && date.getFullYear() === currentYear.value;
         });
@@ -1848,12 +1837,12 @@ This will fail in production.`);
         return monthlyBills.value.reduce((total, item) => total + Number(item.amount), 0).toFixed(2);
       });
       const budgetProgress = vue.computed(() => {
-        if (!accountStore2.budget)
+        if (!accountStore.budget)
           return 0;
-        return Math.min(monthlyExpense.value / accountStore2.budget * 100, 100);
+        return Math.min(monthlyExpense.value / accountStore.budget * 100, 100);
       });
       const recentBills = vue.computed(() => {
-        return [...accountStore2.accounts].sort((a2, b2) => new Date(b2.createTime) - new Date(a2.createTime)).slice(0, 5);
+        return [...accountStore.accounts].sort((a2, b2) => new Date(b2.createTime) - new Date(a2.createTime)).slice(0, 5);
       });
       const categoryStats = vue.computed(() => {
         const stats = {};
@@ -1917,7 +1906,7 @@ This will fail in production.`);
         return formatTime(time);
       }
       function formatBillDate(date) {
-        return formatDate$1(date);
+        return formatDate(date);
       }
       function addBill() {
         uni.navigateTo({
@@ -1936,12 +1925,12 @@ This will fail in production.`);
           showCancel: false
         });
       }
-      const __returned__ = { accountStore: accountStore2, appStore, darkMode, currentMonth, currentYear, monthlyBills, monthlyExpense, budgetProgress, recentBills, categoryStats, dailyAverage, maxExpense, recordDays, getCategoryIcon, getCategoryColor, formatBillTime, formatBillDate, addBill, navigateToList, showBillDetail, ref: vue.ref, computed: vue.computed, onMounted: vue.onMounted, get useAccountStore() {
+      const __returned__ = { accountStore, appStore, darkMode, currentMonth, currentYear, monthlyBills, monthlyExpense, budgetProgress, recentBills, categoryStats, dailyAverage, maxExpense, recordDays, getCategoryIcon, getCategoryColor, formatBillTime, formatBillDate, addBill, navigateToList, showBillDetail, ref: vue.ref, computed: vue.computed, onMounted: vue.onMounted, get useAccountStore() {
         return useAccountStore;
       }, get useAppStore() {
         return useAppStore;
       }, get formatDate() {
-        return formatDate$1;
+        return formatDate;
       }, get formatTime() {
         return formatTime;
       }, get getCurrentMonth() {
@@ -2959,18 +2948,78 @@ This will fail in production.`);
     )) : vue.createCommentVNode("v-if", true);
   }
   const __easycom_0$2 = /* @__PURE__ */ _export_sfc(_sfc_main$f, [["render", _sfc_render$e], ["__scopeId", "data-v-7db519c7"], ["__file", "D:/HBuilderProjects/ztbook/node_modules/@dcloudio/uni-ui/lib/uni-popup/uni-popup.vue"]]);
+  function checkBudgetAndNotify() {
+    const budget = uni.getStorageSync("budget");
+    if (!budget)
+      return;
+    const accounts = uni.getStorageSync("accounts") || [];
+    const now2 = /* @__PURE__ */ new Date();
+    const currentMonthExpense = accounts.filter((account) => {
+      const date = new Date(account.createTime);
+      return date.getMonth() === now2.getMonth() && date.getFullYear() === now2.getFullYear();
+    }).reduce((total, account) => total + Number(account.amount), 0);
+    const usagePercentage = currentMonthExpense / budget * 100;
+    const thresholds = [
+      { value: 80, message: "预算已使用80%，请注意控制支出" },
+      { value: 90, message: "预算已使用90%，建议减少非必要支出" },
+      { value: 100, message: "已超出预算，请合理安排支出" }
+    ];
+    for (const { value, message } of thresholds) {
+      if (usagePercentage >= value) {
+        const lastNotifyTime = uni.getStorageSync(`budget_notify_${value}`);
+        const now3 = Date.now();
+        if (!lastNotifyTime || isNewMonth(lastNotifyTime)) {
+          uni.showModal({
+            title: "预算提醒",
+            content: message + `
+
+当前支出：¥${currentMonthExpense.toFixed(2)}
+预算金额：¥${budget.toFixed(2)}`,
+            confirmText: "知道了",
+            showCancel: false,
+            success: () => {
+              uni.setStorageSync(`budget_notify_${value}`, now3);
+            }
+          });
+          break;
+        }
+      }
+    }
+  }
+  function isNewMonth(timestamp) {
+    const date = new Date(timestamp);
+    const now2 = /* @__PURE__ */ new Date();
+    return date.getMonth() !== now2.getMonth() || date.getFullYear() !== now2.getFullYear();
+  }
+  function getBudgetUsage() {
+    const budget = uni.getStorageSync("budget");
+    if (!budget)
+      return null;
+    const accounts = uni.getStorageSync("accounts") || [];
+    const now2 = /* @__PURE__ */ new Date();
+    const currentMonthExpense = accounts.filter((account) => {
+      const date = new Date(account.createTime);
+      return date.getMonth() === now2.getMonth() && date.getFullYear() === now2.getFullYear();
+    }).reduce((total, account) => total + Number(account.amount), 0);
+    return {
+      budget,
+      currentExpense: currentMonthExpense,
+      remaining: budget - currentMonthExpense,
+      percentage: currentMonthExpense / budget * 100
+    };
+  }
   const _sfc_main$e = {
     __name: "add",
     setup(__props, { expose: __expose }) {
       __expose();
-      const accountStore2 = useAccountStore();
+      const accountStore = useAccountStore();
       const appStore = useAppStore();
       const tagPopup = vue.ref(null);
       const darkMode = vue.computed(() => appStore.darkMode);
       const form = vue.ref({
         amount: "",
         category: "",
-        date: formatDate$1(/* @__PURE__ */ new Date()),
+        date: formatDate(/* @__PURE__ */ new Date()),
         time: formatTime(/* @__PURE__ */ new Date()),
         note: "",
         tags: []
@@ -2982,20 +3031,20 @@ This will fail in production.`);
         const options = currentPage.$page.options;
         if (options.id) {
           editId.value = options.id;
-          const bill = accountStore2.accounts.find((item) => item.id === options.id);
+          const bill = accountStore.accounts.find((item) => item.id === options.id);
           if (bill) {
             form.value = {
               ...bill,
-              date: formatDate$1(bill.createTime),
+              date: formatDate(bill.createTime),
               time: formatTime(bill.createTime)
             };
           }
         }
       });
-      const categories = vue.computed(() => accountStore2.categories);
+      const categories = vue.computed(() => accountStore.categories);
       const selectedTags = vue.computed(() => form.value.tags);
       const availableTags = vue.computed(() => {
-        return accountStore2.tags.filter((tag) => !form.value.tags.includes(tag));
+        return accountStore.tags.filter((tag) => !form.value.tags.includes(tag));
       });
       const isValid = vue.computed(() => {
         return form.value.amount > 0 && form.value.category;
@@ -3036,7 +3085,7 @@ This will fail in production.`);
           placeholderText: "请输入标签名称",
           success: (res) => {
             if (res.confirm && res.content) {
-              accountStore2.addTag(res.content);
+              accountStore.addTag(res.content);
               form.value.tags.push(res.content);
             }
           }
@@ -3052,24 +3101,27 @@ This will fail in production.`);
           createTime: new Date(datetime)
         };
         if (editId.value) {
-          accountStore2.editAccount(editId.value, data);
+          accountStore.editAccount(editId.value, data);
         } else {
-          accountStore2.addAccount(data);
+          accountStore.addAccount(data);
         }
         uni.showToast({
           title: editId.value ? "修改成功" : "添加成功",
           icon: "success"
         });
+        checkBudgetAndNotify();
         uni.navigateBack();
       }
-      const __returned__ = { accountStore: accountStore2, appStore, tagPopup, darkMode, form, editId, categories, selectedTags, availableTags, isValid, selectCategory, onDateChange, onTimeChange, showTagPicker, closeTagPicker, toggleTag, removeTag, showAddTagInput, handleSubmit, ref: vue.ref, computed: vue.computed, onMounted: vue.onMounted, get useAccountStore() {
+      const __returned__ = { accountStore, appStore, tagPopup, darkMode, form, editId, categories, selectedTags, availableTags, isValid, selectCategory, onDateChange, onTimeChange, showTagPicker, closeTagPicker, toggleTag, removeTag, showAddTagInput, handleSubmit, ref: vue.ref, computed: vue.computed, onMounted: vue.onMounted, get useAccountStore() {
         return useAccountStore;
       }, get useAppStore() {
         return useAppStore;
       }, get formatDate() {
-        return formatDate$1;
+        return formatDate;
       }, get formatTime() {
         return formatTime;
+      }, get checkBudgetAndNotify() {
+        return checkBudgetAndNotify;
       } };
       Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
       return __returned__;
@@ -3299,7 +3351,7 @@ This will fail in production.`);
     __name: "list",
     setup(__props, { expose: __expose }) {
       __expose();
-      const accountStore2 = useAccountStore();
+      const accountStore = useAccountStore();
       const appStore = useAppStore();
       const statusBarHeight = vue.ref(0);
       const safeAreaBottom = vue.ref(0);
@@ -3307,9 +3359,9 @@ This will fail in production.`);
       const selectedMonth = vue.ref(getCurrentMonth());
       const darkMode = vue.computed(() => appStore.darkMode);
       const monthlyBills = vue.computed(() => {
-        if (!(accountStore2 == null ? void 0 : accountStore2.accounts))
+        if (!(accountStore == null ? void 0 : accountStore.accounts))
           return [];
-        return accountStore2.accounts.filter((bill) => {
+        return accountStore.accounts.filter((bill) => {
           const date = new Date(bill.createTime);
           return date.getFullYear() === selectedYear.value && date.getMonth() + 1 === selectedMonth.value;
         });
@@ -3324,7 +3376,7 @@ This will fail in production.`);
           return {};
         const groups = {};
         monthlyBills.value.forEach((bill) => {
-          const date = formatDate$1(bill.createTime);
+          const date = formatDate(bill.createTime);
           if (!groups[date]) {
             groups[date] = {
               bills: [],
@@ -3344,8 +3396,8 @@ This will fail in production.`);
         const sysInfo = uni.getSystemInfoSync();
         statusBarHeight.value = sysInfo.statusBarHeight;
         safeAreaBottom.value = ((_a = sysInfo.safeAreaInsets) == null ? void 0 : _a.bottom) || 0;
-        if (!accountStore2.accounts) {
-          await accountStore2.initAccounts();
+        if (!accountStore.accounts) {
+          await accountStore.initAccounts();
         }
       });
       function showBillDetail(bill) {
@@ -3369,9 +3421,9 @@ This will fail in production.`);
       function showBillInfo(bill) {
         uni.showModal({
           title: "账单详情",
-          content: `金额：${accountStore2.currencySymbol}${bill.amount}
+          content: `金额：${accountStore.currencySymbol}${bill.amount}
 分类：${bill.category}
-时间：${formatDate$1(bill.createTime)} ${formatTime(bill.createTime)}
+时间：${formatDate(bill.createTime)} ${formatTime(bill.createTime)}
 备注：${bill.remark || "无"}`,
           showCancel: false,
           confirmText: "知道了"
@@ -3389,13 +3441,13 @@ This will fail in production.`);
           success: (res) => {
             if (res.confirm) {
               const billElement = document.querySelector(`[data-id="${bill.id}"]`);
-              if (billElement && accountStore2.listAnimation) {
+              if (billElement && accountStore.listAnimation) {
                 billElement.classList.add("animate-leave");
                 setTimeout(() => {
-                  accountStore2.deleteAccount(bill.id);
+                  accountStore.deleteAccount(bill.id);
                 }, 300);
               } else {
-                accountStore2.deleteAccount(bill.id);
+                accountStore.deleteAccount(bill.id);
               }
             }
           }
@@ -3428,7 +3480,7 @@ This will fail in production.`);
       }
       onPullDownRefresh(async () => {
         try {
-          await accountStore2.initAccounts();
+          await accountStore.initAccounts();
           uni.showToast({
             title: "刷新成功",
             icon: "success"
@@ -3442,14 +3494,14 @@ This will fail in production.`);
           uni.stopPullDownRefresh();
         }
       });
-      const __returned__ = { accountStore: accountStore2, appStore, statusBarHeight, safeAreaBottom, selectedYear, selectedMonth, darkMode, monthlyBills, monthTotal, groupedBills, showBillDetail, showBillInfo, editBill, deleteBill, goToAdd, getCategoryIcon, getCategoryColor, ref: vue.ref, computed: vue.computed, onMounted: vue.onMounted, get onPullDownRefresh() {
+      const __returned__ = { accountStore, appStore, statusBarHeight, safeAreaBottom, selectedYear, selectedMonth, darkMode, monthlyBills, monthTotal, groupedBills, showBillDetail, showBillInfo, editBill, deleteBill, goToAdd, getCategoryIcon, getCategoryColor, ref: vue.ref, computed: vue.computed, onMounted: vue.onMounted, get onPullDownRefresh() {
         return onPullDownRefresh;
       }, get useAccountStore() {
         return useAccountStore;
       }, get useAppStore() {
         return useAppStore;
       }, get formatDate() {
-        return formatDate$1;
+        return formatDate;
       }, get formatTime() {
         return formatTime;
       }, get getCurrentYear() {
@@ -3677,7 +3729,8 @@ This will fail in production.`);
     autoscan: true,
     custom: {
       "^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue",
-      "^qiun-data-charts": "uni_modules/qiun-data-charts/components/qiun-data-charts/qiun-data-charts.vue"
+      "^qiun-data-charts": "uni_modules/qiun-data-charts/components/qiun-data-charts/qiun-data-charts.vue",
+      "uni-popup": "@/uni_modules/uni-popup/components/uni-popup/uni-popup"
     }
   };
   const tabBar = {
@@ -8611,7 +8664,7 @@ ${o3}
     __name: "statistics",
     setup(__props, { expose: __expose }) {
       __expose();
-      const accountStore2 = useAccountStore();
+      const accountStore = useAccountStore();
       const appStore = useAppStore();
       const darkMode = vue.computed(() => appStore.darkMode);
       const statusBarHeight = vue.ref(0);
@@ -8622,7 +8675,7 @@ ${o3}
       const chartHeight = vue.ref(0);
       const isPickerVisible = vue.ref(false);
       const monthlyBills = vue.computed(() => {
-        return accountStore2.accounts.filter((item) => {
+        return accountStore.accounts.filter((item) => {
           const date = new Date(item.createTime);
           return date.getMonth() + 1 === selectedMonth.value && date.getFullYear() === selectedYear.value;
         });
@@ -8767,7 +8820,7 @@ ${o3}
               if (!item.data)
                 return "无支出";
               return `${item.name}
-${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
+${accountStore.currencySymbol}${Number(item.data).toFixed(2)}`;
             }
           }
         }
@@ -8836,7 +8889,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
         for (let i2 = 1; i2 <= 12; i2++) {
           monthlyStats[i2] = 0;
         }
-        accountStore2.accounts.forEach((bill) => {
+        accountStore.accounts.forEach((bill) => {
           const date = new Date(bill.createTime);
           if (date.getFullYear() === selectedYear.value) {
             const month = date.getMonth() + 1;
@@ -8870,7 +8923,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
             amount: 0
           };
         }
-        accountStore2.accounts.forEach((bill) => {
+        accountStore.accounts.forEach((bill) => {
           const date = new Date(bill.createTime);
           const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
           if (yearlyStats[key]) {
@@ -8911,7 +8964,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
           splitNumber: 4,
           min: 0,
           max: "auto",
-          format: (val) => accountStore2.currencySymbol + Number(val).toFixed(0),
+          format: (val) => accountStore.currencySymbol + Number(val).toFixed(0),
           fontSize: 11,
           color: darkMode.value ? "#888" : "#666666",
           boundaryGap: ["20%", "20%"],
@@ -8944,7 +8997,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
                 return `${category}
 无支出`;
               return `${category}
-${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
+${accountStore.currencySymbol}${Number(item.data).toFixed(2)}`;
             }
           }
         }
@@ -9062,13 +9115,67 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
       }, { immediate: true });
       function showCategoryDetail(category) {
         uni.showModal({
-          title: category.name + "支出明细",
-          content: `共${category.count}笔支出
-占比${category.percentage}%
-平均每笔${accountStore2.currencySymbol}${(Number(category.amount) / category.count).toFixed(2)}`,
+          title: category.name,
+          content: `总支出：${accountStore.currencySymbol}${category.amount}
+占比：${category.percentage}%
+笔数：${category.count}笔
+平均：${accountStore.currencySymbol}${(Number(category.amount) / category.count).toFixed(2)}`,
           showCancel: false,
-          confirmText: "知道了"
+          confirmText: "查看详情",
+          success: (res) => {
+            if (res.confirm) {
+              uni.navigateTo({
+                url: `/pages/category-detail/category-detail?category=${encodeURIComponent(JSON.stringify({
+                  name: category.name,
+                  amount: category.amount,
+                  percentage: category.percentage,
+                  count: category.count,
+                  color: category.color,
+                  icon: category.icon,
+                  year: selectedYear.value,
+                  month: selectedMonth.value
+                }))}`
+              });
+            }
+          }
         });
+      }
+      function generateTrendBars(categoryName) {
+        const last7Days = [];
+        const now2 = /* @__PURE__ */ new Date();
+        for (let i2 = 6; i2 >= 0; i2--) {
+          const date = new Date(now2);
+          date.setDate(date.getDate() - i2);
+          last7Days.push(date);
+        }
+        const dayAmounts = last7Days.map((date) => {
+          const dayBills = monthlyBills.value.filter((bill) => {
+            const billDate = new Date(bill.createTime);
+            return bill.category === categoryName && billDate.getDate() === date.getDate();
+          });
+          return dayBills.reduce((sum, bill) => sum + Number(bill.amount), 0);
+        });
+        const maxAmount = Math.max(...dayAmounts, 1);
+        return dayAmounts.map((amount, index) => `
+		<view class="bar-item">
+			<view class="bar" style="height: ${amount / maxAmount * 100}%"></view>
+			<text class="day">${last7Days[index].getDate()}日</text>
+		</view>
+	`).join("");
+      }
+      function generateRecentRecords(categoryName) {
+        const records = monthlyBills.value.filter((bill) => bill.category === categoryName).sort((a2, b2) => new Date(b2.createTime) - new Date(a2.createTime)).slice(0, 3);
+        if (!records.length)
+          return '<text class="empty-text">本月暂无记录</text>';
+        return records.map((record) => `
+		<view class="record-item">
+			<view class="record-info">
+				<text class="date">${formatDate(record.createTime)}</text>
+				${record.note ? `<text class="note">${record.note}</text>` : ""}
+			</view>
+			<text class="amount">${accountStore.currencySymbol}${Number(record.amount).toFixed(2)}</text>
+		</view>
+	`).join("");
       }
       function viewCategoryBills(category) {
         monthlyBills.value.filter((bill) => bill.category === category.name);
@@ -9079,7 +9186,8 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
         });
       }
       onShow(() => {
-        accountStore2.refresh();
+        accountStore.refresh();
+        checkBudgetAndNotify();
       });
       const { list: virtualBills } = useVirtualList(monthlyBills, {
         itemHeight: 88,
@@ -9106,7 +9214,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
             year: selectedYear.value,
             month: selectedMonth.value,
             total: monthTotal.value,
-            currency: accountStore2.currencySymbol,
+            currency: accountStore.currencySymbol,
             categories: categoryRanking.value,
             darkMode: darkMode.value
           };
@@ -9127,7 +9235,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
             }
           });
         } catch (err) {
-          formatAppLog("error", "at pages/statistics/statistics.vue:776", "分享失败:", err);
+          formatAppLog("error", "at pages/statistics/statistics.vue:860", "分享失败:", err);
           uni.showToast({
             title: "分享失败",
             icon: "error"
@@ -9136,14 +9244,15 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
           uni.hideLoading();
         }
       }
-      const __returned__ = { accountStore: accountStore2, appStore, darkMode, statusBarHeight, safeAreaBottom, selectedYear, selectedMonth, chartWidth, chartHeight, isPickerVisible, monthlyBills, monthTotal, daysInMonth, dailyAverage, recordDays, categoryRanking, getCategoryIcon, getCategoryColor, showMonthPicker, pieOpts, pieData, trendTabs, currentTrendType, getTrendSubtitle, trendData, getDailyTrendData, getMonthlyTrendData, getYearlyTrendData, trendOpts, chartTheme, pieChartOptions, lineChartOptions, pieChartRef, trendChartRef, onPieChartInit, onTrendChartInit, showCategoryDetail, viewCategoryBills, goToAdd, virtualBills, gesture, switchMonth, shareStatistics, ref: vue.ref, computed: vue.computed, onMounted: vue.onMounted, watch: vue.watch, onUnmounted: vue.onUnmounted, nextTick: vue.nextTick, get onShow() {
+      const budgetInfo = vue.computed(() => getBudgetUsage());
+      const __returned__ = { accountStore, appStore, darkMode, statusBarHeight, safeAreaBottom, selectedYear, selectedMonth, chartWidth, chartHeight, isPickerVisible, monthlyBills, monthTotal, daysInMonth, dailyAverage, recordDays, categoryRanking, getCategoryIcon, getCategoryColor, showMonthPicker, pieOpts, pieData, trendTabs, currentTrendType, getTrendSubtitle, trendData, getDailyTrendData, getMonthlyTrendData, getYearlyTrendData, trendOpts, chartTheme, pieChartOptions, lineChartOptions, pieChartRef, trendChartRef, onPieChartInit, onTrendChartInit, showCategoryDetail, generateTrendBars, generateRecentRecords, viewCategoryBills, goToAdd, virtualBills, gesture, switchMonth, shareStatistics, budgetInfo, ref: vue.ref, computed: vue.computed, onMounted: vue.onMounted, watch: vue.watch, onUnmounted: vue.onUnmounted, nextTick: vue.nextTick, get onShow() {
         return onShow;
       }, get useAccountStore() {
         return useAccountStore;
       }, get useAppStore() {
         return useAppStore;
       }, get formatDate() {
-        return formatDate$1;
+        return formatDate;
       }, get getCurrentMonth() {
         return getCurrentMonth;
       }, get getCurrentYear() {
@@ -9154,6 +9263,10 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
         return useGesture;
       }, get generateShareImage() {
         return generateShareImage;
+      }, get checkBudgetAndNotify() {
+        return checkBudgetAndNotify;
+      }, get getBudgetUsage() {
+        return getBudgetUsage;
       } };
       Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
       return __returned__;
@@ -9439,7 +9552,35 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
         vue.createElementVNode("canvas", {
           "canvas-id": "shareCanvas",
           style: { "width": "750px", "height": "1200px", "position": "fixed", "left": "-9999px" }
-        })
+        }),
+        vue.createCommentVNode(" 预算进度 "),
+        $setup.budgetInfo ? (vue.openBlock(), vue.createElementBlock("view", {
+          key: 0,
+          class: "budget-section"
+        }, [
+          vue.createElementVNode("view", { class: "budget-header" }, [
+            vue.createElementVNode("text", { class: "title" }, "预算使用"),
+            vue.createElementVNode(
+              "text",
+              { class: "amount" },
+              vue.toDisplayString($setup.accountStore.currencySymbol) + vue.toDisplayString($setup.budgetInfo.remaining.toFixed(2)),
+              1
+              /* TEXT */
+            )
+          ]),
+          vue.createElementVNode("progress", {
+            percent: $setup.budgetInfo.percentage,
+            "stroke-width": 8,
+            color: $setup.budgetInfo.percentage > 100 ? "#e74c3c" : "#3498db"
+          }, null, 8, ["percent", "color"]),
+          vue.createElementVNode(
+            "text",
+            { class: "budget-text" },
+            vue.toDisplayString($setup.budgetInfo.percentage > 100 ? "已超出预算" : `已使用${$setup.budgetInfo.percentage.toFixed(1)}%`),
+            1
+            /* TEXT */
+          )
+        ])) : vue.createCommentVNode("v-if", true)
       ],
       34
       /* CLASS, NEED_HYDRATION */
@@ -9491,36 +9632,41 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
       }
       const json = JSON.stringify(data);
       const size = (json.length / 1024).toFixed(2);
-      const fileName = `backup_${(/* @__PURE__ */ new Date()).toISOString().split("T")[0]}.json`;
-      return new Promise((resolve, reject) => {
-        uni.saveFile({
-          tempFilePath: URL.createObjectURL(new Blob([json], { type: "application/json" })),
-          success(res) {
-            uni.showToast({
-              title: `已备份 ${size}KB 数据`,
-              icon: "success"
-            });
-            resolve(res.savedFilePath);
-          },
-          fail(err) {
-            reject(err);
-          }
+      try {
+        uni.setStorageSync("backup_data", data);
+        uni.setStorageSync("lastBackupTime", Date.now());
+        uni.showToast({
+          title: `已备份 ${size}KB 数据`,
+          icon: "success"
         });
-      });
+        return true;
+      } catch (err) {
+        formatAppLog("error", "at utils/backup.js:42", "保存备份失败:", err);
+        uni.showToast({
+          title: "备份失败",
+          icon: "error"
+        });
+        return false;
+      }
     } catch (err) {
-      formatAppLog("error", "at utils/backup.js:49", "备份失败", err);
+      formatAppLog("error", "at utils/backup.js:50", "备份失败:", err);
       uni.showToast({
         title: "备份失败",
         icon: "error"
       });
-      throw err;
+      return false;
     }
   }
   function restoreData() {
     try {
       const backup = uni.getStorageSync("backup_data");
-      if (!backup)
+      if (!backup) {
+        uni.showToast({
+          title: "没有找到备份数据",
+          icon: "none"
+        });
         return false;
+      }
       if (backup.accounts)
         uni.setStorageSync("accounts", backup.accounts);
       if (backup.categories)
@@ -9542,9 +9688,17 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
         if (hideAmount !== void 0)
           uni.setStorageSync("hideAmount", hideAmount);
       }
+      uni.showToast({
+        title: "恢复成功",
+        icon: "success"
+      });
       return true;
     } catch (error) {
-      formatAppLog("error", "at utils/backup.js:82", "恢复失败:", error);
+      formatAppLog("error", "at utils/backup.js:93", "恢复失败:", error);
+      uni.showToast({
+        title: "恢复失败",
+        icon: "error"
+      });
       return false;
     }
   }
@@ -9552,7 +9706,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
     __name: "settings",
     setup(__props, { expose: __expose }) {
       __expose();
-      const accountStore2 = useAccountStore();
+      const accountStore = useAccountStore();
       const appStore = useAppStore();
       const darkMode = vue.computed(() => appStore.darkMode);
       const budgetAlert = vue.ref(uni.getStorageSync("budgetAlert") || false);
@@ -9636,7 +9790,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
                 });
                 return;
               }
-              accountStore2.setBudget(amount);
+              accountStore.setBudget(amount);
               uni.showToast({
                 title: "设置成功",
                 icon: "success"
@@ -9655,7 +9809,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
       }
       function exportData() {
         try {
-          const data = accountStore2.accounts;
+          const data = accountStore.accounts;
           const csv = exportToCSV(data);
           let content = `账单明细导出 (${data.length}笔)
 `;
@@ -9668,7 +9822,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
             const amount = Number(item.amount);
             content += `${formatDateTime2(date)}
 `;
-            content += `【${item.category}】 ${accountStore2.currencySymbol}${amount.toFixed(2)}
+            content += `【${item.category}】 ${accountStore.currencySymbol}${amount.toFixed(2)}
 `;
             if ((_a = item.tags) == null ? void 0 : _a.length)
               content += `标签: ${item.tags.join("、")}
@@ -9681,9 +9835,9 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
           const totalAmount = data.reduce((sum, item) => sum + Number(item.amount), 0);
           const averageAmount = data.length > 0 ? totalAmount / data.length : 0;
           content += "\n==============================\n";
-          content += `总支出：${accountStore2.currencySymbol}${totalAmount.toFixed(2)}
+          content += `总支出：${accountStore.currencySymbol}${totalAmount.toFixed(2)}
 `;
-          content += `平均支出：${accountStore2.currencySymbol}${averageAmount.toFixed(2)}
+          content += `平均支出：${accountStore.currencySymbol}${averageAmount.toFixed(2)}
 `;
           content += `记账天数：${new Set(data.map((item) => new Date(item.createTime).toLocaleDateString())).size}天
 `;
@@ -9750,7 +9904,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
                 uni.removeStorageSync("accounts");
                 uni.removeStorageSync("categories");
                 uni.removeStorageSync("tags");
-                accountStore2.initAccounts();
+                accountStore.initAccounts();
                 uni.showToast({
                   title: "已清空数据",
                   icon: "success"
@@ -9794,12 +9948,12 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
           content: "确定要清除缓存吗？\n(不会删除账单数据)",
           success: (res) => {
             if (res.confirm) {
-              const accounts = accountStore2.accounts;
-              const budget = accountStore2.budget;
+              const accounts = accountStore.accounts;
+              const budget = accountStore.budget;
               const budgetAlert2 = uni.getStorageSync("budgetAlert");
               uni.clearStorageSync();
-              accountStore2.accounts = accounts;
-              accountStore2.budget = budget;
+              accountStore.accounts = accounts;
+              accountStore.budget = budget;
               uni.setStorageSync("budgetAlert", budgetAlert2);
               getCacheSize();
               uni.showToast({
@@ -9838,7 +9992,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
                 // 默认颜色
                 isDefault: false
               };
-              accountStore2.addCategory(newCategory);
+              accountStore.addCategory(newCategory);
               uni.showToast({
                 title: "添加成功",
                 icon: "success"
@@ -9861,7 +10015,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
           content: category.name,
           success: (res) => {
             if (res.confirm && res.content) {
-              accountStore2.updateCategory(category.id, {
+              accountStore.updateCategory(category.id, {
                 ...category,
                 name: res.content
               });
@@ -9881,7 +10035,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
           content: '删除分类后，该分类下的账单将被归类为"其他"，是否继续？',
           success: (res) => {
             if (res.confirm) {
-              accountStore2.deleteCategory(category.id);
+              accountStore.deleteCategory(category.id);
               uni.showToast({
                 title: "删除成功",
                 icon: "success"
@@ -9899,7 +10053,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
               try {
                 const success = restoreData();
                 if (success) {
-                  accountStore2.initAccounts();
+                  accountStore.initAccounts();
                   uni.showToast({
                     title: "恢复成功",
                     icon: "success"
@@ -9935,7 +10089,7 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
         currencyPopup.value.close();
       }
       function selectCurrency(item) {
-        accountStore2.setCurrency(item.code);
+        accountStore.setCurrency(item.code);
         currencyPopup.value.close();
         uni.showToast({
           title: "设置成功",
@@ -9949,9 +10103,9 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
       function toggleThousandsSeparator(e2) {
         thousandsSeparator.value = e2.detail.value;
         uni.setStorageSync("thousandsSeparator", thousandsSeparator.value);
-        accountStore2.setThousandsSeparator(thousandsSeparator.value);
+        accountStore.setThousandsSeparator(thousandsSeparator.value);
       }
-      const __returned__ = { accountStore: accountStore2, appStore, darkMode, budgetAlert, listAnimation, thousandsSeparator, autoBackup, currencyPopup, currencies, categoryPopup, cacheSize, toggleBudgetAlert, toggleDarkMode, setMonthlyBudget, formatDateTime: formatDateTime2, exportData, backupData: backupData$1, clearData, checkUpdate, showAbout, getCacheSize, clearCache, isBackupOutdated, showCategoryManager, closeCategoryManager, addCategory, editCategory, deleteCategory, restoreData: restoreData$1, toggleAutoBackup, showCurrencyPicker, closeCurrencyPicker, selectCurrency, toggleListAnimation, toggleThousandsSeparator, get useAccountStore() {
+      const __returned__ = { accountStore, appStore, darkMode, budgetAlert, listAnimation, thousandsSeparator, autoBackup, currencyPopup, currencies, categoryPopup, cacheSize, toggleBudgetAlert, toggleDarkMode, setMonthlyBudget, formatDateTime: formatDateTime2, exportData, backupData: backupData$1, clearData, checkUpdate, showAbout, getCacheSize, clearCache, isBackupOutdated, showCategoryManager, closeCategoryManager, addCategory, editCategory, deleteCategory, restoreData: restoreData$1, toggleAutoBackup, showCurrencyPicker, closeCurrencyPicker, selectCurrency, toggleListAnimation, toggleThousandsSeparator, get useAccountStore() {
         return useAccountStore;
       }, get useAppStore() {
         return useAppStore;
@@ -10292,400 +10446,429 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
   const PagesSettingsSettings = /* @__PURE__ */ _export_sfc(_sfc_main$3, [["render", _sfc_render$2], ["__scopeId", "data-v-7fad0a1c"], ["__file", "D:/HBuilderProjects/ztbook/pages/settings/settings.vue"]]);
   const _sfc_main$2 = {
     __name: "category-detail",
-    props: {
-      category: String,
-      year: Number,
-      month: Number
-    },
     setup(__props, { expose: __expose }) {
       __expose();
-      const categoryName = vue.ref("");
-      const categoryIcon = vue.ref("");
-      const categoryColor = vue.ref("");
-      const bills = vue.ref([]);
-      const isRefreshing = vue.ref(false);
-      const showSearch = vue.ref(false);
-      const searchText = vue.ref("");
-      const originalBills = vue.ref([]);
-      const query = __props;
-      const totalAmount = vue.computed(() => {
-        return bills.value.reduce((sum, bill) => sum + Number(bill.amount), 0).toFixed(2);
+      const accountStore = useAccountStore();
+      const appStore = useAppStore();
+      const darkMode = vue.computed(() => appStore.darkMode);
+      const category = vue.ref({});
+      vue.onMounted(() => {
+        const pages2 = getCurrentPages();
+        const currentPage = pages2[pages2.length - 1];
+        const options = currentPage.$page.options;
+        if (options.category) {
+          category.value = JSON.parse(decodeURIComponent(options.category));
+        }
       });
-      const averageAmount = vue.computed(() => {
-        if (bills.value.length === 0)
-          return "0.00";
-        return (Number(totalAmount.value) / bills.value.length).toFixed(2);
-      });
-      const groupedBills = vue.computed(() => {
-        const groups = {};
-        bills.value.forEach((bill) => {
-          const date = formatDate(bill.createTime);
-          if (!groups[date]) {
-            groups[date] = {
-              date,
-              displayDate: formatDateForDisplay(date),
-              bills: [],
-              total: 0
-            };
-          }
-          groups[date].bills.push(bill);
-          groups[date].total += Number(bill.amount);
-        });
-        return Object.values(groups).map((group) => ({
-          ...group,
-          total: group.total.toFixed(2)
-        })).sort((a2, b2) => new Date(b2.date) - new Date(a2.date));
-      });
-      function getCategoryIcon(category) {
-        const icons = {
-          "餐饮": "🍚",
-          "交通": "🚗",
-          "购物": "🛒",
-          "娱乐": "🎮",
-          "居家": "🏠"
-        };
-        return icons[category] || "💰";
-      }
-      function getCategoryColor(category) {
-        const colors = {
-          "餐饮": "#FF9800",
-          "交通": "#2196F3",
-          "购物": "#E91E63",
-          "娱乐": "#9C27B0",
-          "居家": "#4CAF50"
-        };
-        return colors[category] || "#999999";
+      function goBack() {
+        uni.navigateBack();
       }
       function showBillDetail(bill) {
-        uni.showActionSheet({
-          itemList: ["查看详情", "编辑账单", "删除账单"],
-          success: (res) => {
-            switch (res.tapIndex) {
-              case 0:
-                showBillInfo(bill);
-                break;
-              case 1:
-                editBill(bill);
-                break;
-              case 2:
-                deleteBill(bill);
-                break;
-            }
-          }
-        });
-      }
-      function showBillInfo(bill) {
+        var _a;
         uni.showModal({
-          title: "账单详情",
-          content: `金额：¥${bill.amount}
-时间：${formatDateTime$2(bill.createTime)}
-备注：${bill.remark || "无"}`,
-          showCancel: false,
-          confirmText: "知道了"
-        });
-      }
-      function editBill(bill) {
-        uni.navigateTo({
-          url: `/pages/add/add?id=${bill.id}&edit=true`
-        });
-      }
-      function deleteBill(bill) {
-        uni.showModal({
-          title: "确认删除",
-          content: "确定要删除这笔账单吗？",
+          title: formatDate(bill.createTime),
+          content: `金额：${accountStore.currencySymbol}${bill.amount}
+${bill.note ? "备注：" + bill.note : ""}${((_a = bill.tags) == null ? void 0 : _a.length) ? "\n标签：" + bill.tags.join("、") : ""}`,
+          confirmText: "编辑",
+          cancelText: "关闭",
           success: (res) => {
             if (res.confirm) {
-              const accountStore2 = useAccountStore();
-              accountStore2.deleteBill(bill.id);
-              bills.value = bills.value.filter((item) => item.id !== bill.id);
-              uni.showToast({
-                title: "删除成功",
-                icon: "success"
+              uni.navigateTo({
+                url: `/pages/add/add?id=${bill.id}`
               });
             }
           }
         });
       }
-      function shareCategory() {
-        `${categoryName.value}类账单统计
-总支出：${accountStore.currencySymbol}${totalAmount.value}
-共${bills.value.length}笔
-平均每笔：${accountStore.currencySymbol}${averageAmount.value}`;
-      }
-      async function onRefresh() {
-        isRefreshing.value = true;
-        const accountStore2 = useAccountStore();
-        bills.value = accountStore2.accounts.filter(
-          (bill) => bill.category === categoryName.value && new Date(bill.createTime).getFullYear() === Number(query.year) && new Date(bill.createTime).getMonth() + 1 === Number(query.month)
-        );
-        setTimeout(() => {
-          isRefreshing.value = false;
-          uni.showToast({
-            title: "刷新成功",
-            icon: "success"
-          });
-        }, 500);
-      }
-      function clearSearch() {
-        searchText.value = "";
-        bills.value = originalBills.value;
-      }
-      function cancelSearch() {
-        showSearch.value = false;
-        clearSearch();
-      }
-      function onSearch() {
-        if (!searchText.value.trim()) {
-          bills.value = originalBills.value;
-          return;
-        }
-        const keyword = searchText.value.toLowerCase().trim();
-        bills.value = originalBills.value.filter(
-          (bill) => {
-            var _a;
-            return ((_a = bill.remark) == null ? void 0 : _a.toLowerCase().includes(keyword)) || bill.amount.toString().includes(keyword);
+      const monthlyBills = vue.computed(() => {
+        const now2 = /* @__PURE__ */ new Date();
+        const currentMonth = now2.getMonth();
+        const currentYear = now2.getFullYear();
+        const bills = accountStore.accounts.filter((bill) => {
+          const date = new Date(bill.createTime);
+          return bill.category === category.value.name && date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+        }).sort((a2, b2) => {
+          if (currentSort.value === "time") {
+            return new Date(b2.createTime) - new Date(a2.createTime);
+          } else {
+            return Number(b2.amount) - Number(a2.amount);
           }
-        );
-      }
-      vue.onMounted(() => {
-        var _a;
-        const pages2 = getCurrentPages();
-        const currentPage = pages2[pages2.length - 1];
-        const options = (_a = currentPage.$page) == null ? void 0 : _a.options;
-        if (options) {
-          uni.setNavigationBarTitle({
-            title: options.category + "的支出明细"
-          });
-          categoryName.value = options.category;
-          categoryIcon.value = getCategoryIcon(options.category);
-          categoryColor.value = getCategoryColor(options.category);
-          const accountStore2 = useAccountStore();
-          bills.value = accountStore2.accounts.filter(
-            (bill) => bill.category === options.category && new Date(bill.createTime).getFullYear() === Number(options.year) && new Date(bill.createTime).getMonth() + 1 === Number(options.month)
-          );
-          originalBills.value = [...bills.value];
-        }
+        });
+        return bills.reduce((groups, bill) => {
+          const date = new Date(bill.createTime);
+          const dayStr = `${date.getMonth() + 1}月${date.getDate()}日`;
+          const group = groups.find((g2) => g2.title === dayStr);
+          if (group) {
+            group.bills.push(bill);
+          } else {
+            groups.push({
+              title: dayStr,
+              bills: [bill]
+            });
+          }
+          return groups;
+        }, []);
       });
-      const __returned__ = { categoryName, categoryIcon, categoryColor, bills, isRefreshing, showSearch, searchText, originalBills, query, totalAmount, averageAmount, groupedBills, getCategoryIcon, getCategoryColor, showBillDetail, showBillInfo, editBill, deleteBill, shareCategory, onRefresh, clearSearch, cancelSearch, onSearch, ref: vue.ref, computed: vue.computed, onMounted: vue.onMounted, get useAccountStore() {
+      const sortOptions = [
+        { type: "time", name: "按时间" },
+        { type: "amount", name: "按金额" }
+      ];
+      const currentSort = vue.ref("time");
+      function calculateGroupTotal(bills) {
+        return bills.reduce((sum, bill) => sum + Number(bill.amount), 0).toFixed(2);
+      }
+      const totalCount = vue.computed(() => {
+        return monthlyBills.value.reduce((sum, group) => sum + group.bills.length, 0);
+      });
+      const averagePerBill = vue.computed(() => {
+        const totalAmount = monthlyBills.value.reduce((sum, group) => sum + group.bills.reduce((sum2, bill) => sum2 + Number(bill.amount), 0), 0);
+        return (totalAmount / totalCount.value).toFixed(2);
+      });
+      const monthOverMonthChange = vue.computed(() => {
+        const now2 = /* @__PURE__ */ new Date();
+        const currentMonth = now2.getMonth();
+        const currentYear = now2.getFullYear();
+        const bills = accountStore.accounts.filter((bill) => {
+          const date = new Date(bill.createTime);
+          return bill.category === category.value.name && date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+        }).reduce((sum, bill) => sum + Number(bill.amount), 0);
+        const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+        const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+        const previousBills = accountStore.accounts.filter((bill) => {
+          const date = new Date(bill.createTime);
+          return bill.category === category.value.name && date.getMonth() === previousMonth && date.getFullYear() === previousYear;
+        }).reduce((sum, bill) => sum + Number(bill.amount), 0);
+        if (previousBills === 0)
+          return 0;
+        const change = (bills - previousBills) / previousBills * 100;
+        return change.toFixed(2);
+      });
+      const __returned__ = { accountStore, appStore, darkMode, category, goBack, showBillDetail, monthlyBills, sortOptions, currentSort, calculateGroupTotal, totalCount, averagePerBill, monthOverMonthChange, ref: vue.ref, computed: vue.computed, onMounted: vue.onMounted, watch: vue.watch, nextTick: vue.nextTick, get useAccountStore() {
         return useAccountStore;
-      }, get formatDateForDisplay() {
-        return formatDateForDisplay;
+      }, get useAppStore() {
+        return useAppStore;
+      }, get formatDate() {
+        return formatDate;
       }, get formatTime() {
         return formatTime;
-      }, get formatDateTime() {
-        return formatDateTime$2;
+      }, get formatDayOfWeek() {
+        return formatDayOfWeek;
       } };
       Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
       return __returned__;
     }
   };
   function _sfc_render$1(_ctx, _cache, $props, $setup, $data, $options) {
-    return vue.openBlock(), vue.createElementBlock("view", { class: "container" }, [
-      vue.createCommentVNode(" 添加分享按钮 "),
-      vue.createElementVNode("view", { class: "header-actions" }, [
-        vue.createElementVNode("button", {
-          class: "share-btn",
-          onClick: $setup.shareCategory
-        }, [
-          vue.createElementVNode("text", { class: "iconfont icon-share" })
-        ])
-      ]),
-      vue.createCommentVNode(" 分类信息头部 "),
-      vue.createElementVNode(
-        "view",
-        {
-          class: "category-header",
-          style: vue.normalizeStyle({ backgroundColor: $setup.categoryColor })
-        },
-        [
-          vue.createElementVNode("view", { class: "header-actions" }, [
-            vue.createElementVNode("button", {
-              class: "action-btn",
-              onClick: _cache[0] || (_cache[0] = ($event) => $setup.showSearch = true)
-            }, [
-              vue.createElementVNode("text", { class: "iconfont icon-search" })
-            ]),
-            vue.createElementVNode("button", {
-              class: "action-btn",
-              onClick: $setup.shareCategory
-            }, [
-              vue.createElementVNode("text", { class: "iconfont icon-share" })
-            ])
-          ]),
-          vue.createElementVNode("view", { class: "category-info" }, [
-            vue.createElementVNode(
-              "view",
-              { class: "icon" },
-              vue.toDisplayString($setup.categoryIcon),
-              1
-              /* TEXT */
-            ),
-            vue.createElementVNode("view", { class: "details" }, [
-              vue.createElementVNode(
-                "text",
-                { class: "name" },
-                vue.toDisplayString($setup.categoryName),
-                1
-                /* TEXT */
-              ),
-              vue.createElementVNode(
-                "text",
-                { class: "count" },
-                "共" + vue.toDisplayString($setup.bills.length) + "笔支出",
-                1
-                /* TEXT */
-              )
-            ])
-          ]),
-          vue.createElementVNode("view", { class: "amount-info" }, [
-            vue.createElementVNode("text", { class: "label" }, "支出总额"),
-            vue.createElementVNode(
-              "text",
-              { class: "amount" },
-              vue.toDisplayString(_ctx.accountStore.currencySymbol) + vue.toDisplayString($setup.totalAmount),
-              1
-              /* TEXT */
-            ),
-            vue.createElementVNode(
-              "text",
-              { class: "average" },
-              "平均 " + vue.toDisplayString(_ctx.accountStore.currencySymbol) + vue.toDisplayString($setup.averageAmount) + "/笔",
-              1
-              /* TEXT */
-            )
-          ])
-        ],
-        4
-        /* STYLE */
-      ),
-      vue.createCommentVNode(" 搜索栏 "),
-      vue.createElementVNode(
-        "view",
-        {
-          class: vue.normalizeClass(["search-wrapper", { "show": $setup.showSearch }])
-        },
-        [
-          vue.createElementVNode("view", { class: "search-bar" }, [
-            vue.createElementVNode("text", { class: "iconfont icon-search search-icon" }),
-            vue.withDirectives(vue.createElementVNode(
-              "input",
-              {
-                type: "text",
-                class: "search-input",
-                "onUpdate:modelValue": _cache[1] || (_cache[1] = ($event) => $setup.searchText = $event),
-                placeholder: "搜索备注",
-                onInput: $setup.onSearch,
-                focus: ""
-              },
-              null,
-              544
-              /* NEED_HYDRATION, NEED_PATCH */
-            ), [
-              [vue.vModelText, $setup.searchText]
-            ]),
-            $setup.searchText ? (vue.openBlock(), vue.createElementBlock("text", {
-              key: 0,
-              class: "clear-btn",
-              onClick: $setup.clearSearch
-            }, "✕")) : vue.createCommentVNode("v-if", true)
-          ]),
-          vue.createElementVNode("text", {
-            class: "cancel-btn",
-            onClick: $setup.cancelSearch
-          }, "取消")
-        ],
-        2
-        /* CLASS */
-      ),
-      vue.createCommentVNode(" 账单列表 "),
-      vue.createElementVNode("scroll-view", {
-        "scroll-y": "",
-        class: "bill-list",
-        style: vue.normalizeStyle({ height: `calc(100vh - 200rpx)` }),
-        "refresher-enabled": "",
-        "refresher-triggered": $setup.isRefreshing,
-        onRefresherrefresh: $setup.onRefresh
-      }, [
-        (vue.openBlock(true), vue.createElementBlock(
-          vue.Fragment,
-          null,
-          vue.renderList($setup.groupedBills, (group) => {
-            return vue.openBlock(), vue.createElementBlock("view", {
-              class: "date-group",
-              key: group.date
-            }, [
-              vue.createElementVNode("view", { class: "date-header" }, [
+    return vue.openBlock(), vue.createElementBlock(
+      "view",
+      {
+        class: vue.normalizeClass(["container", $setup.darkMode ? "dark" : ""])
+      },
+      [
+        vue.createCommentVNode(" 主内容区 "),
+        vue.createElementVNode("view", { class: "main-content" }, [
+          vue.createCommentVNode(" 金额卡片 "),
+          vue.createElementVNode(
+            "view",
+            {
+              class: "amount-card",
+              style: vue.normalizeStyle({ backgroundColor: $setup.category.color })
+            },
+            [
+              vue.createCommentVNode(" 玻璃态背景 "),
+              vue.createElementVNode("view", { class: "glass-bg" }),
+              vue.createCommentVNode(" 背景装饰 "),
+              vue.createElementVNode("view", { class: "card-decoration" }, [
+                vue.createCommentVNode(" 光晕效果 "),
+                vue.createElementVNode("view", { class: "light-effect" }),
+                vue.createElementVNode("view", { class: "circles" }, [
+                  vue.createElementVNode("view", { class: "circle" }),
+                  vue.createElementVNode("view", { class: "circle" }),
+                  vue.createElementVNode("view", { class: "circle" })
+                ]),
+                vue.createCommentVNode(" 动态渐变背景 "),
+                vue.createElementVNode("view", { class: "gradient-bg" }),
+                vue.createElementVNode("view", { class: "pattern" })
+              ]),
+              vue.createCommentVNode(" 分类信息 "),
+              vue.createElementVNode("view", { class: "category-info" }, [
+                vue.createElementVNode("view", { class: "icon-wrap" }, [
+                  vue.createElementVNode("view", { class: "icon-bg" }),
+                  vue.createElementVNode(
+                    "text",
+                    { class: "icon" },
+                    vue.toDisplayString($setup.category.icon),
+                    1
+                    /* TEXT */
+                  ),
+                  vue.createElementVNode("view", { class: "icon-ring" }),
+                  vue.createElementVNode("view", { class: "icon-glow" })
+                ]),
                 vue.createElementVNode(
                   "text",
-                  { class: "date" },
-                  vue.toDisplayString(group.displayDate),
-                  1
-                  /* TEXT */
-                ),
-                vue.createElementVNode(
-                  "text",
-                  { class: "total" },
-                  vue.toDisplayString(_ctx.accountStore.currencySymbol) + vue.toDisplayString(group.total),
+                  { class: "name" },
+                  vue.toDisplayString($setup.category.name),
                   1
                   /* TEXT */
                 )
               ]),
-              (vue.openBlock(true), vue.createElementBlock(
+              vue.createCommentVNode(" 金额信息 "),
+              vue.createElementVNode("view", { class: "amount-section" }, [
+                vue.createElementVNode("text", { class: "label" }, "本月支出"),
+                vue.createElementVNode("view", { class: "amount-wrap" }, [
+                  vue.createElementVNode(
+                    "text",
+                    { class: "amount" },
+                    vue.toDisplayString($setup.accountStore.currencySymbol) + vue.toDisplayString($setup.category.amount),
+                    1
+                    /* TEXT */
+                  ),
+                  vue.createElementVNode("view", { class: "amount-glow" })
+                ]),
+                vue.createElementVNode("view", { class: "trend" }, [
+                  vue.createElementVNode("text", { class: "trend-label" }, "较上月"),
+                  vue.createElementVNode(
+                    "text",
+                    {
+                      class: vue.normalizeClass(["trend-value", { "up": $setup.monthOverMonthChange > 0 }])
+                    },
+                    vue.toDisplayString($setup.monthOverMonthChange > 0 ? "+" : "") + vue.toDisplayString($setup.monthOverMonthChange) + "% ",
+                    3
+                    /* TEXT, CLASS */
+                  )
+                ]),
+                vue.createElementVNode("view", { class: "progress-bar" }, [
+                  vue.createElementVNode(
+                    "view",
+                    {
+                      class: "bar",
+                      style: vue.normalizeStyle({ width: $setup.category.percentage + "%" })
+                    },
+                    [
+                      vue.createElementVNode("view", { class: "bar-shine" })
+                    ],
+                    4
+                    /* STYLE */
+                  ),
+                  vue.createElementVNode(
+                    "view",
+                    { class: "bar-label" },
+                    "占支出" + vue.toDisplayString($setup.category.percentage) + "%",
+                    1
+                    /* TEXT */
+                  )
+                ])
+              ]),
+              vue.createCommentVNode(" 统计信息 "),
+              vue.createElementVNode("view", { class: "stats-section" }, [
+                (vue.openBlock(true), vue.createElementBlock(
+                  vue.Fragment,
+                  null,
+                  vue.renderList([
+                    { value: $setup.totalCount, label: "笔数" },
+                    { value: $setup.averagePerBill, label: "单笔均值" },
+                    { value: $setup.category.percentage + "%", label: "占比" }
+                  ], (stat, index) => {
+                    return vue.openBlock(), vue.createElementBlock("view", {
+                      key: index,
+                      class: "stat"
+                    }, [
+                      vue.createElementVNode("view", { class: "stat-content" }, [
+                        vue.createElementVNode(
+                          "text",
+                          { class: "value" },
+                          vue.toDisplayString(stat.value),
+                          1
+                          /* TEXT */
+                        ),
+                        vue.createElementVNode(
+                          "text",
+                          { class: "label" },
+                          vue.toDisplayString(stat.label),
+                          1
+                          /* TEXT */
+                        )
+                      ]),
+                      vue.createElementVNode("view", { class: "stat-glow" })
+                    ]);
+                  }),
+                  128
+                  /* KEYED_FRAGMENT */
+                ))
+              ])
+            ],
+            4
+            /* STYLE */
+          ),
+          vue.createCommentVNode(" 账单列表 "),
+          vue.createElementVNode("view", { class: "bills-section" }, [
+            vue.createElementVNode("view", { class: "list-header" }, [
+              vue.createElementVNode("view", { class: "header-left" }, [
+                vue.createElementVNode("text", { class: "title" }, "本月账单"),
+                vue.createElementVNode(
+                  "text",
+                  { class: "count" },
+                  vue.toDisplayString($setup.totalCount) + "笔",
+                  1
+                  /* TEXT */
+                )
+              ]),
+              vue.createElementVNode("view", { class: "sort-buttons" }, [
+                vue.createElementVNode(
+                  "view",
+                  {
+                    class: vue.normalizeClass(["sort-btn", { active: $setup.currentSort === "time" }]),
+                    onClick: _cache[0] || (_cache[0] = ($event) => $setup.currentSort = "time"),
+                    style: vue.normalizeStyle({
+                      backgroundColor: $setup.currentSort === "time" ? `${$setup.category.color}15` : "#f5f7fa",
+                      color: $setup.currentSort === "time" ? $setup.category.color : "#666"
+                    })
+                  },
+                  [
+                    vue.createElementVNode("text", { class: "icon" }, "⏱️"),
+                    vue.createElementVNode("text", { class: "text" }, "时间")
+                  ],
+                  6
+                  /* CLASS, STYLE */
+                ),
+                vue.createElementVNode(
+                  "view",
+                  {
+                    class: vue.normalizeClass(["sort-btn", { active: $setup.currentSort === "amount" }]),
+                    onClick: _cache[1] || (_cache[1] = ($event) => $setup.currentSort = "amount"),
+                    style: vue.normalizeStyle({
+                      backgroundColor: $setup.currentSort === "amount" ? `${$setup.category.color}15` : "#f5f7fa",
+                      color: $setup.currentSort === "amount" ? $setup.category.color : "#666"
+                    })
+                  },
+                  [
+                    vue.createElementVNode("text", { class: "icon" }, "💰"),
+                    vue.createElementVNode("text", { class: "text" }, "金额")
+                  ],
+                  6
+                  /* CLASS, STYLE */
+                )
+              ])
+            ]),
+            vue.createElementVNode("view", { class: "bill-groups" }, [
+              $setup.monthlyBills.length ? (vue.openBlock(true), vue.createElementBlock(
                 vue.Fragment,
-                null,
-                vue.renderList(group.bills, (bill) => {
+                { key: 0 },
+                vue.renderList($setup.monthlyBills, (group) => {
                   return vue.openBlock(), vue.createElementBlock("view", {
-                    class: "bill-item",
-                    key: bill.id,
-                    onClick: ($event) => $setup.showBillDetail(bill)
+                    key: group.title,
+                    class: "bill-group"
                   }, [
-                    vue.createElementVNode(
-                      "view",
-                      { class: "time" },
-                      vue.toDisplayString($setup.formatTime(bill.createTime)),
-                      1
-                      /* TEXT */
-                    ),
-                    vue.createElementVNode("view", { class: "content" }, [
+                    vue.createElementVNode("view", { class: "group-title" }, [
+                      vue.createElementVNode("view", { class: "date-wrap" }, [
+                        vue.createElementVNode("text", { class: "dot" }),
+                        vue.createElementVNode(
+                          "text",
+                          { class: "date" },
+                          vue.toDisplayString(group.title),
+                          1
+                          /* TEXT */
+                        ),
+                        vue.createElementVNode(
+                          "text",
+                          { class: "count" },
+                          vue.toDisplayString(group.bills.length) + "笔",
+                          1
+                          /* TEXT */
+                        )
+                      ]),
                       vue.createElementVNode(
                         "text",
-                        { class: "remark" },
-                        vue.toDisplayString(bill.remark || "无备注"),
-                        1
-                        /* TEXT */
-                      ),
-                      vue.createElementVNode(
-                        "text",
-                        { class: "amount" },
-                        vue.toDisplayString(_ctx.accountStore.currencySymbol) + vue.toDisplayString(bill.amount),
+                        { class: "total" },
+                        vue.toDisplayString($setup.accountStore.currencySymbol) + vue.toDisplayString($setup.calculateGroupTotal(group.bills)),
                         1
                         /* TEXT */
                       )
-                    ])
-                  ], 8, ["onClick"]);
+                    ]),
+                    (vue.openBlock(true), vue.createElementBlock(
+                      vue.Fragment,
+                      null,
+                      vue.renderList(group.bills, (bill) => {
+                        var _a;
+                        return vue.openBlock(), vue.createElementBlock("view", {
+                          key: bill.id,
+                          class: "bill-item",
+                          "hover-class": "bill-item-hover",
+                          onClick: ($event) => $setup.showBillDetail(bill)
+                        }, [
+                          vue.createElementVNode(
+                            "view",
+                            { class: "time" },
+                            vue.toDisplayString($setup.formatTime(bill.createTime)),
+                            1
+                            /* TEXT */
+                          ),
+                          vue.createElementVNode("view", { class: "content" }, [
+                            vue.createElementVNode(
+                              "text",
+                              { class: "note" },
+                              vue.toDisplayString(bill.note || "无备注"),
+                              1
+                              /* TEXT */
+                            ),
+                            ((_a = bill.tags) == null ? void 0 : _a.length) ? (vue.openBlock(), vue.createElementBlock("view", {
+                              key: 0,
+                              class: "tags"
+                            }, [
+                              (vue.openBlock(true), vue.createElementBlock(
+                                vue.Fragment,
+                                null,
+                                vue.renderList(bill.tags, (tag) => {
+                                  return vue.openBlock(), vue.createElementBlock(
+                                    "text",
+                                    {
+                                      key: tag,
+                                      class: "tag",
+                                      style: vue.normalizeStyle({
+                                        backgroundColor: `${$setup.category.color}15`,
+                                        color: $setup.category.color
+                                      })
+                                    },
+                                    vue.toDisplayString(tag),
+                                    5
+                                    /* TEXT, STYLE */
+                                  );
+                                }),
+                                128
+                                /* KEYED_FRAGMENT */
+                              ))
+                            ])) : vue.createCommentVNode("v-if", true)
+                          ]),
+                          vue.createElementVNode(
+                            "text",
+                            { class: "amount" },
+                            vue.toDisplayString($setup.accountStore.currencySymbol) + vue.toDisplayString(bill.amount),
+                            1
+                            /* TEXT */
+                          )
+                        ], 8, ["onClick"]);
+                      }),
+                      128
+                      /* KEYED_FRAGMENT */
+                    ))
+                  ]);
                 }),
                 128
                 /* KEYED_FRAGMENT */
-              ))
-            ]);
-          }),
-          128
-          /* KEYED_FRAGMENT */
-        )),
-        vue.createCommentVNode(" 空状态 "),
-        $setup.bills.length === 0 ? (vue.openBlock(), vue.createElementBlock("view", {
-          key: 0,
-          class: "empty-state"
-        }, [
-          vue.createElementVNode("image", {
-            src: _imports_0,
-            mode: "aspectFit",
-            class: "empty-image"
-          }),
-          vue.createElementVNode("text", { class: "empty-text" }, "暂无账单记录")
-        ])) : vue.createCommentVNode("v-if", true)
-      ], 44, ["refresher-triggered"])
-    ]);
+              )) : (vue.openBlock(), vue.createElementBlock("view", {
+                key: 1,
+                class: "empty-state"
+              }, [
+                vue.createElementVNode("text", { class: "icon" }, "📝"),
+                vue.createElementVNode("text", { class: "empty-text" }, "本月暂无记录")
+              ]))
+            ])
+          ])
+        ])
+      ],
+      2
+      /* CLASS */
+    );
   }
   const PagesCategoryDetailCategoryDetail = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["render", _sfc_render$1], ["__scopeId", "data-v-cadc03b8"], ["__file", "D:/HBuilderProjects/ztbook/pages/category-detail/category-detail.vue"]]);
   const _sfc_main$1 = {
@@ -11054,9 +11237,9 @@ ${accountStore2.currencySymbol}${Number(item.data).toFixed(2)}`;
   const _sfc_main = {
     onLaunch: function() {
       formatAppLog("log", "at App.vue:7", "App Launch");
-      const accountStore2 = useAccountStore();
+      const accountStore = useAccountStore();
       const appStore = useAppStore();
-      accountStore2.initAccounts();
+      accountStore.initAccounts();
       const darkMode = uni.getStorageSync("darkMode");
       if (darkMode) {
         appStore.toggleDarkMode(true);

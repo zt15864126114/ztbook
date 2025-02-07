@@ -946,3 +946,189 @@ to {
   background: linear-gradient(135deg, #3498db, #1a5276);
   box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.4);
 }
+.budget-section[data-v-fc23ec97] {
+  background-color: #fff;
+  border-radius: 0.5rem;
+  padding: 0.9375rem;
+  margin-bottom: 0.75rem;
+}
+.budget-section .budget-header[data-v-fc23ec97] {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.625rem;
+}
+.budget-section .budget-header .title[data-v-fc23ec97] {
+  font-size: 0.875rem;
+  color: #333;
+}
+.budget-section .budget-header .amount[data-v-fc23ec97] {
+  font-size: 1rem;
+  color: #3498db;
+  font-weight: bold;
+}
+.budget-section .budget-text[data-v-fc23ec97] {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.3125rem;
+}
+.budget-section.dark[data-v-fc23ec97] {
+  background-color: #1e1e1e;
+}
+.budget-section.dark .title[data-v-fc23ec97] {
+  color: #eee;
+}
+.budget-section.dark .amount[data-v-fc23ec97] {
+  color: #3498db;
+}
+.budget-section.dark .budget-text[data-v-fc23ec97] {
+  color: #888;
+}
+[data-v-fc23ec97] .category-detail-modal .header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.9375rem;
+}
+[data-v-fc23ec97] .category-detail-modal .header .icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-right: 0.625rem;
+  box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, 0.1);
+}
+[data-v-fc23ec97] .category-detail-modal .header .name {
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: #333;
+}
+[data-v-fc23ec97] .category-detail-modal .info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.625rem;
+  margin-bottom: 0.9375rem;
+}
+[data-v-fc23ec97] .category-detail-modal .info-grid .info-item {
+  background-color: #f5f5f5;
+  padding: 0.625rem;
+  border-radius: 0.375rem;
+}
+[data-v-fc23ec97] .category-detail-modal .info-grid .info-item .label {
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+[data-v-fc23ec97] .category-detail-modal .info-grid .info-item .value {
+  font-size: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+[data-v-fc23ec97] .category-detail-modal .trend-chart {
+  margin-bottom: 0.9375rem;
+}
+[data-v-fc23ec97] .category-detail-modal .trend-chart .chart-title {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+[data-v-fc23ec97] .category-detail-modal .trend-chart .chart-bars {
+  display: flex;
+  align-items: flex-end;
+  height: 5rem;
+  padding: 0.625rem 0;
+}
+[data-v-fc23ec97] .category-detail-modal .trend-chart .chart-bars .bar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+[data-v-fc23ec97] .category-detail-modal .trend-chart .chart-bars .bar-item .bar {
+  width: 0.5rem;
+  background-color: #3498db;
+  border-radius: 0.25rem;
+  transition: height 0.3s ease;
+}
+[data-v-fc23ec97] .category-detail-modal .trend-chart .chart-bars .bar-item .day {
+  font-size: 0.6875rem;
+  color: #999;
+  margin-top: 0.25rem;
+}
+[data-v-fc23ec97] .category-detail-modal .recent-records .section-title {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+[data-v-fc23ec97] .category-detail-modal .recent-records .record-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 0.03125rem solid #eee;
+}
+[data-v-fc23ec97] .category-detail-modal .recent-records .record-item:last-child {
+  border-bottom: none;
+}
+[data-v-fc23ec97] .category-detail-modal .recent-records .record-item .record-info .date {
+  font-size: 0.8125rem;
+  color: #333;
+}
+[data-v-fc23ec97] .category-detail-modal .recent-records .record-item .record-info .note {
+  font-size: 0.75rem;
+  color: #999;
+  margin-left: 0.5rem;
+}
+[data-v-fc23ec97] .category-detail-modal .recent-records .record-item .amount {
+  font-size: 0.9375rem;
+  color: #333;
+  font-weight: 500;
+}
+[data-v-fc23ec97] .category-detail-modal .recent-records .empty-text {
+  font-size: 0.8125rem;
+  color: #999;
+  text-align: center;
+  display: block;
+  padding: 0.9375rem 0;
+}
+[data-v-fc23ec97] .category-detail-modal.dark .header .name {
+  color: #eee;
+}
+[data-v-fc23ec97] .category-detail-modal.dark .info-grid .info-item {
+  background-color: #2d2d2d;
+}
+[data-v-fc23ec97] .category-detail-modal.dark .info-grid .info-item .label {
+  color: #888;
+}
+[data-v-fc23ec97] .category-detail-modal.dark .info-grid .info-item .value {
+  color: #eee;
+}
+[data-v-fc23ec97] .category-detail-modal.dark .trend-chart .chart-title {
+  color: #888;
+}
+[data-v-fc23ec97] .category-detail-modal.dark .trend-chart .bar-item .day {
+  color: #666;
+}
+[data-v-fc23ec97] .category-detail-modal.dark .recent-records .section-title {
+  color: #888;
+}
+[data-v-fc23ec97] .category-detail-modal.dark .recent-records .record-item {
+  border-color: #2d2d2d;
+}
+[data-v-fc23ec97] .category-detail-modal.dark .recent-records .record-item .record-info .date {
+  color: #eee;
+}
+[data-v-fc23ec97] .category-detail-modal.dark .recent-records .record-item .record-info .note {
+  color: #666;
+}
+[data-v-fc23ec97] .category-detail-modal.dark .recent-records .record-item .amount {
+  color: #eee;
+}
+[data-v-fc23ec97] .category-detail-modal.dark .recent-records .empty-text {
+  color: #666;
+}

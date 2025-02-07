@@ -58,7 +58,8 @@
 		"autoscan": true,
 		"custom": {
 			"^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue",
-			"^qiun-data-charts": "uni_modules/qiun-data-charts/components/qiun-data-charts/qiun-data-charts.vue"
+			"^qiun-data-charts": "uni_modules/qiun-data-charts/components/qiun-data-charts/qiun-data-charts.vue",
+			"uni-popup": "@/uni_modules/uni-popup/components/uni-popup/uni-popup"
 		}
 	},
 	"tabBar": {

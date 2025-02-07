@@ -28,30 +28,31 @@ export async function backupData() {
     const json = JSON.stringify(data)
     const size = (json.length / 1024).toFixed(2)
     
-    // 保存文件
-    const fileName = `backup_${new Date().toISOString().split('T')[0]}.json`
-    return new Promise((resolve, reject) => {
-      uni.saveFile({
-        tempFilePath: URL.createObjectURL(new Blob([json], { type: 'application/json' })),
-        success(res) {
-          uni.showToast({
-            title: `已备份 ${size}KB 数据`,
-            icon: 'success'
-          })
-          resolve(res.savedFilePath)
-        },
-        fail(err) {
-          reject(err)
-        }
+    // 保存到本地存储
+    try {
+      uni.setStorageSync('backup_data', data)
+      uni.setStorageSync('lastBackupTime', Date.now())
+      
+      uni.showToast({
+        title: `已备份 ${size}KB 数据`,
+        icon: 'success'
       })
-    })
+      return true
+    } catch (err) {
+      console.error('保存备份失败:', err)
+      uni.showToast({
+        title: '备份失败',
+        icon: 'error'
+      })
+      return false
+    }
   } catch (err) {
-    console.error('备份失败', err)
+    console.error('备份失败:', err)
     uni.showToast({
       title: '备份失败',
       icon: 'error'
     })
-    throw err
+    return false
   }
 }
 
@@ -59,7 +60,13 @@ export async function backupData() {
 export function restoreData() {
   try {
     const backup = uni.getStorageSync('backup_data')
-    if (!backup) return false
+    if (!backup) {
+      uni.showToast({
+        title: '没有找到备份数据',
+        icon: 'none'
+      })
+      return false
+    }
     
     // 恢复账单数据
     if (backup.accounts) uni.setStorageSync('accounts', backup.accounts)
@@ -77,9 +84,17 @@ export function restoreData() {
       if (hideAmount !== undefined) uni.setStorageSync('hideAmount', hideAmount)
     }
     
+    uni.showToast({
+      title: '恢复成功',
+      icon: 'success'
+    })
     return true
   } catch (error) {
     console.error('恢复失败:', error)
+    uni.showToast({
+      title: '恢复失败',
+      icon: 'error'
+    })
     return false
   }
 }
