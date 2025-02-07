@@ -17,6 +17,7 @@
     "url": ""
   },
   "permissions": {
+    "Fingerprint": {},
     "UniNView": {
       "description": "UniNView原生渲染"
     }
@@ -42,6 +43,9 @@
     "compilerVersion": 3,
     "distribute": {
       "google": {
+        "dependencies": {
+          "androidx.core": "1.6.0"
+        },
         "permissions": [
           "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
           "<uses-permission android:name=\"android.permission.MOUNT_UNMOUNT_FILESYSTEMS\"/>",
@@ -57,10 +61,24 @@
           "<uses-permission android:name=\"android.permission.WAKE_LOCK\"/>",
           "<uses-permission android:name=\"android.permission.FLASHLIGHT\"/>",
           "<uses-feature android:name=\"android.hardware.camera\"/>",
-          "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
-        ]
+          "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>",
+          "<uses-permission android:name=\"android.permission.USE_BIOMETRIC\"/>",
+          "<uses-permission android:name=\"android.permission.USE_FINGERPRINT\"/>",
+          "<uses-permission android:name=\"android.permission.USE_BIOMETRIC_STRONG\"/>",
+          "<uses-feature android:name=\"android.hardware.fingerprint\"/>",
+          "<uses-feature android:name=\"android.hardware.biometrics\"/>"
+        ],
+        "abiFilters": [
+          "armeabi-v7a",
+          "arm64-v8a"
+        ],
+        "minSdkVersion": 23
       },
-      "apple": {},
+      "apple": {
+        "privacyDescription": {
+          "NSFaceIDUsageDescription": "用于验证用户身份"
+        }
+      },
       "plugins": {
         "audio": {
           "mp3": {

@@ -3,13 +3,15 @@
 		<!-- 月份选择器 -->
 		<view class="month-header">
 			<view class="month-picker" @click="showMonthPicker">
-				<text class="year">{{ selectedYear }}年</text>
-				<text class="month">{{ selectedMonth }}月</text>
-				<text class="arrow iconfont icon-arrow-down"></text>
+				<view class="date-wrapper">
+					<text class="year">{{ selectedYear }}年</text>
+					<text class="month">{{ selectedMonth }}月</text>
+				</view>
+				<text class="arrow" :class="{ 'arrow-rotate': isPickerVisible }">▼</text>
 			</view>
 			<view class="total">
 				<text class="label">总支出</text>
-				<text class="amount">¥{{ monthTotal }}</text>
+				<text class="amount">{{ accountStore.currencySymbol }}{{ monthTotal }}</text>
 			</view>
 		</view>
 		
@@ -21,97 +23,105 @@
 				height: `calc(100vh - ${statusBarHeight}px - 44px - 52px - ${safeAreaBottom}px)`
 			}"
 		>
-			<!-- 饼图统计 -->
-			<view class="chart-section">
-				<view class="section-header">
-					<text class="title">支出构成</text>
-					<text class="subtitle">本月共{{ categoryRanking.length }}个支出类别</text>
+			<template v-if="monthlyBills.length">
+				<!-- 饼图统计 -->
+				<view class="chart-section">
+					<view class="section-header">
+						<text class="title">支出构成</text>
+						<text class="subtitle">本月共{{ categoryRanking.length }}个支出类别</text>
+					</view>
+					<view class="pie-chart">
+						<qiun-data-charts 
+							type="pie"
+							:opts="pieOpts"
+							:chartData="pieData"
+							canvasId="pieChart"
+						/>
+					</view>
 				</view>
-				<view class="pie-chart">
-					<qiun-data-charts 
-						type="pie"
-						:opts="pieOpts"
-						:chartData="pieData"
-						canvasId="pieChart"
-					/>
-				</view>
-			</view>
-			
-			<!-- 分类排行 -->
-			<view class="ranking-section">
-				<view class="section-header">
-					<text class="title">分类排行</text>
-					<text class="subtitle">按支出金额排序</text>
-				</view>
-				<view class="ranking-list">
-					<view 
-						class="ranking-item"
-						v-for="(category, index) in categoryRanking" 
-						:key="category.name"
-					>
-						<view class="rank-info">
-							<text class="rank-number">{{ index + 1 }}</text>
-							<view class="category-icon" :style="{ backgroundColor: category.color }">
-								{{ category.icon }}
+				
+				<!-- 分类排行 -->
+				<view class="ranking-section">
+					<view class="section-header">
+						<text class="title">分类排行</text>
+						<text class="subtitle">按支出金额排序</text>
+					</view>
+					<view class="ranking-list">
+						<view 
+							class="ranking-item"
+							v-for="(category, index) in categoryRanking" 
+							:key="category.name"
+							@click="showCategoryDetail(category)"
+						>
+							<view class="rank-info">
+								<text class="rank-number">{{ index + 1 }}</text>
+								<view class="category-icon" :style="{ backgroundColor: category.color }">
+									{{ category.icon }}
+								</view>
+								<view class="category-detail">
+									<text class="name">{{ category.name }}</text>
+									<text class="amount">{{ accountStore.currencySymbol }}{{ category.amount }}</text>
+								</view>
 							</view>
-							<view class="category-detail">
-								<text class="name">{{ category.name }}</text>
-								<text class="amount">¥{{ category.amount }}</text>
+							<view class="progress-bar">
+								<view 
+									class="progress" 
+									:style="{ 
+										width: category.percentage + '%',
+										backgroundColor: category.color
+									}"
+								></view>
+							</view>
+							<text class="percentage">{{ category.percentage }}%</text>
+						</view>
+					</view>
+				</view>
+				
+				<!-- 趋势图表 -->
+				<view class="trend-section">
+					<view class="section-header">
+						<view class="header-main">
+							<text class="title">支出趋势</text>
+							<view class="trend-tabs">
+								<text 
+									v-for="tab in trendTabs" 
+									:key="tab.type"
+									:class="['tab-item', { active: currentTrendType === tab.type }]"
+									@click="currentTrendType = tab.type"
+								>{{ tab.name }}</text>
 							</view>
 						</view>
-						<view class="progress-bar">
-							<view 
-								class="progress" 
-								:style="{ 
-									width: category.percentage + '%',
-									backgroundColor: category.color
-								}"
-							></view>
+						<view class="trend-overview">
+							<view class="overview-item">
+								<text class="label">日均支出</text>
+								<text class="value">{{ accountStore.currencySymbol }}{{ Number(dailyAverage).toFixed(2) }}</text>
+							</view>
+							<view class="overview-item">
+								<text class="label">记账天数</text>
+								<text class="value">{{ recordDays }}天</text>
+							</view>
 						</view>
-						<text class="percentage">{{ category.percentage }}%</text>
+						<view class="subtitle">
+							<text class="dot"></text>
+							<text>{{ currentTrendType === 'day' ? selectedMonth + '月每日支出变化' : 
+								   currentTrendType === 'month' ? selectedYear + '年每月支出变化' : 
+								   '近12个月支出变化' }}</text>
+						</view>
+					</view>
+					<view class="trend-chart">
+						<qiun-data-charts 
+							type="column"
+							:opts="trendOpts"
+							:chartData="trendData"
+							canvasId="trendChart"
+						/>
 					</view>
 				</view>
-			</view>
-			
-			<!-- 趋势图表 -->
-			<view class="trend-section">
-				<view class="section-header">
-					<view class="header-main">
-						<text class="title">支出趋势</text>
-						<view class="trend-tabs">
-							<text 
-								v-for="tab in trendTabs" 
-								:key="tab.type"
-								:class="['tab-item', { active: currentTrendType === tab.type }]"
-								@click="currentTrendType = tab.type"
-							>{{ tab.name }}</text>
-						</view>
-					</view>
-					<view class="trend-overview">
-						<view class="overview-item">
-							<text class="label">日均支出</text>
-							<text class="value">¥{{ Number(dailyAverage).toFixed(2) }}</text>
-						</view>
-						<view class="overview-item">
-							<text class="label">记账天数</text>
-							<text class="value">{{ recordDays }}天</text>
-						</view>
-					</view>
-					<view class="subtitle">
-						<text class="dot"></text>
-						<text>{{ currentTrendType === 'day' ? selectedMonth + '月每日支出变化' : 
-							   currentTrendType === 'month' ? selectedYear + '年每月支出变化' : 
-							   '近12个月支出变化' }}</text>
-					</view>
-				</view>
-				<view class="trend-chart">
-					<qiun-data-charts 
-						type="column"
-						:opts="trendOpts"
-						:chartData="trendData"
-						canvasId="trendChart"
-					/>
-				</view>
+			</template>
+			<view v-else class="empty-state">
+				<image src="/static/empty.png" mode="aspectFit" class="empty-image"/>
+				<text class="empty-text">本月还没有记账哦</text>
+				<button class="add-btn" @click="goToAdd">去记一笔</button>
 			</view>
 		</scroll-view>
 	</view>
@@ -119,6 +129,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useAccountStore } from '@/stores/account'
 import { formatDate, getCurrentMonth, getCurrentYear } from '@/utils/date'
 
@@ -131,6 +142,8 @@ const selectedMonth = ref(getCurrentMonth())
 // 图表尺寸
 const chartWidth = ref(0)
 const chartHeight = ref(0)
+
+const isPickerVisible = ref(false)
 
 // 先定义数据相关的计算属性
 // 本月账单
@@ -222,6 +235,7 @@ function getCategoryColor(category) {
 
 // 显示月份选择器
 function showMonthPicker() {
+	isPickerVisible.value = true
 	const date = new Date()
 	const months = []
 	// 生成最近6个月的选项
@@ -237,12 +251,15 @@ function showMonthPicker() {
 			const [year, month] = selected.match(/\d+/g)
 			selectedYear.value = parseInt(year)
 			selectedMonth.value = parseInt(month)
+		},
+		complete: () => {
+			isPickerVisible.value = false
 		}
 	})
 }
 
 // 饼图配置
-const pieOpts = {
+const pieOpts = computed(() => ({
 	padding: [5, 15, 15, 5],
 	legend: {
 		show: true,
@@ -261,13 +278,11 @@ const pieOpts = {
 	},
 	extra: {
 		pie: {
-			activeOpacity: 0.8,
-			activeRadius: 8,
+			labelLine: false,
+			activeRadius: 10,
 			offsetAngle: 0,
-			labelWidth: 12,
-			border: true,
-			borderWidth: 4,
-			borderColor: "#FFFFFF",
+			labelWidth: 15,
+			border: false,
 			linearType: 'custom'
 		},
 		tooltip: {
@@ -281,11 +296,12 @@ const pieOpts = {
 			fontColor: '#ffffff',
 			fontSize: 12,
 			format: (item) => {
-				return `${item.name}\n¥${item.data.toFixed(2)}`
+				if (!item.data) return '无支出'
+				return `${item.name}\n${accountStore.currencySymbol}${Number(item.data).toFixed(2)}`
 			}
 		}
 	}
-}
+}))
 
 // 饼图数据
 const pieData = computed(() => ({
@@ -443,7 +459,7 @@ function getYearlyTrendData() {
 }
 
 // 趋势图配置
-const trendOpts = {
+const trendOpts = computed(() => ({
 	padding: [15, 15, 15, 15],
 	xAxis: {
 		disableGrid: true,
@@ -459,7 +475,7 @@ const trendOpts = {
 		splitNumber: 4,
 		min: 0,
 		max: 'auto',
-		format: val => '¥' + Number(val).toFixed(0),
+		format: val => accountStore.currencySymbol + Number(val).toFixed(0),
 		fontSize: 11,
 		color: '#666666',
 		boundaryGap: ['20%', '20%']
@@ -488,11 +504,11 @@ const trendOpts = {
 			fontSize: 12,
 			format: (item, category) => {
 				if (!item.data) return `${category}\n无支出`
-				return `${category}\n¥${Number(item.data).toFixed(2)}`
+				return `${category}\n${accountStore.currencySymbol}${Number(item.data).toFixed(2)}`
 			}
 		}
 	}
-}
+}))
 
 onMounted(() => {
 	uni.getSystemInfo({
@@ -508,6 +524,34 @@ onMounted(() => {
 // 监听数据变化
 watch([categoryRanking, trendData], () => {
 	// 更新图表数据
+})
+
+// 显示分类详情
+function showCategoryDetail(category) {
+	uni.showModal({
+		title: category.name + '支出明细',
+		content: `共${category.count}笔支出\n占比${category.percentage}%\n平均每笔${accountStore.currencySymbol}${(Number(category.amount) / category.count).toFixed(2)}`,
+		showCancel: false,
+		confirmText: '知道了'
+	})
+}
+
+// 添加分类账单列表功能
+function viewCategoryBills(category) {
+	const bills = monthlyBills.value.filter(bill => bill.category === category.name)
+	// TODO: 跳转到账单列表页面，传递筛选参数
+}
+
+function goToAdd() {
+	uni.switchTab({
+		url: '/pages/add/add'
+	})
+}
+
+// 添加页面显示事件处理
+onShow(() => {
+	// 每次页面显示时刷新数据
+	accountStore.refresh()
 })
 </script>
 
@@ -539,7 +583,21 @@ watch([categoryRanking, trendData], () => {
 			margin-left: 8rpx;
 			font-size: 24rpx;
 			color: #666;
-			transition: transform 0.3s;
+			transition: transform 0.3s ease;
+		}
+		
+		.date-wrapper {
+			display: flex;
+			align-items: baseline;
+			
+			.year {
+				font-size: 28rpx;
+				margin-right: 8rpx;
+			}
+			
+			.month {
+				font-size: 34rpx;
+			}
 		}
 	}
 	
@@ -667,6 +725,10 @@ watch([categoryRanking, trendData], () => {
 			color: #666;
 			font-weight: 500;
 		}
+		
+		&:active {
+			opacity: 0.7;
+		}
 	}
 }
 
@@ -754,6 +816,46 @@ watch([categoryRanking, trendData], () => {
 			border-radius: 50%;
 			margin-right: 8rpx;
 		}
+	}
+}
+
+.month-picker {
+	.arrow {
+		transition: transform 0.3s ease;
+		
+		&.arrow-rotate {
+			transform: rotate(180deg);
+		}
+	}
+}
+
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 100rpx 0;
+	
+	.empty-image {
+		width: 200rpx;
+		height: 200rpx;
+		margin-bottom: 20rpx;
+	}
+	
+	.empty-text {
+		font-size: 28rpx;
+		color: #999;
+		margin-bottom: 30rpx;
+	}
+	
+	.add-btn {
+		width: 200rpx;
+		height: 80rpx;
+		line-height: 80rpx;
+		font-size: 28rpx;
+		color: #fff;
+		background-color: #3498db;
+		border-radius: 40rpx;
 	}
 }
 </style> 

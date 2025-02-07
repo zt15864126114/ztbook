@@ -4,16 +4,16 @@
 		<view class="statistics-card">
 			<view class="month-overview">
 				<text class="month">{{ currentMonth }}月账单</text>
-				<text class="total-amount">¥{{ monthlyExpense }}</text>
+				<text class="total-amount">{{ accountStore.currencySymbol }}{{ accountStore.formatAmount(monthlyExpense) }}</text>
 			</view>
 			<view class="statistics-grid">
 				<view class="grid-item">
 					<text class="label">日均支出</text>
-					<text class="value">¥{{ dailyAverage }}</text>
+					<text class="value">{{ accountStore.currencySymbol }}{{ accountStore.formatAmount(dailyAverage) }}</text>
 				</view>
 				<view class="grid-item">
 					<text class="label">最大支出</text>
-					<text class="value">¥{{ maxExpense }}</text>
+					<text class="value">{{ accountStore.currencySymbol }}{{ accountStore.formatAmount(maxExpense) }}</text>
 				</view>
 				<view class="grid-item">
 					<text class="label">记账天数</text>
@@ -37,7 +37,7 @@
 						</view>
 						<view class="category-detail">
 							<text class="name">{{ category.name }}</text>
-							<text class="amount">¥{{ category.amount }}</text>
+							<text class="amount">{{ accountStore.currencySymbol }}{{ category.amount }}</text>
 						</view>
 					</view>
 					<text class="percentage">{{ category.percentage }}%</text>
@@ -68,7 +68,7 @@
 						</view>
 					</view>
 					<view class="right">
-						<text class="amount">-{{ item.amount }}</text>
+						<text class="amount">-{{ accountStore.currencySymbol }}{{ item.amount }}</text>
 						<text class="time">{{ formatBillTime(item.createTime) }}</text>
 					</view>
 				</view>

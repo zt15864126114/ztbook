@@ -2,7 +2,7 @@
   <view class="container">
     <!-- 金额输入区 -->
     <view class="amount-section">
-      <text class="currency">¥</text>
+      <text class="currency">{{ accountStore.currencySymbol }}</text>
       <input 
         type="digit" 
         v-model="form.amount" 

@@ -542,7 +542,18 @@ to {
   margin-left: 0.25rem;
   font-size: 0.75rem;
   color: #666;
-  transition: transform 0.3s;
+  transition: transform 0.3s ease;
+}
+.month-header .month-picker .date-wrapper[data-v-fc23ec97] {
+  display: flex;
+  align-items: baseline;
+}
+.month-header .month-picker .date-wrapper .year[data-v-fc23ec97] {
+  font-size: 0.875rem;
+  margin-right: 0.25rem;
+}
+.month-header .month-picker .date-wrapper .month[data-v-fc23ec97] {
+  font-size: 1.0625rem;
 }
 .month-header .total[data-v-fc23ec97] {
   text-align: right;
@@ -649,6 +660,9 @@ to {
   color: #666;
   font-weight: 500;
 }
+.ranking-list .ranking-item[data-v-fc23ec97]:active {
+  opacity: 0.7;
+}
 .pie-chart[data-v-fc23ec97], .trend-chart[data-v-fc23ec97] {
   height: 14.375rem;
   width: 100%;
@@ -720,4 +734,36 @@ to {
   background-color: #3498db;
   border-radius: 50%;
   margin-right: 0.25rem;
+}
+.month-picker .arrow[data-v-fc23ec97] {
+  transition: transform 0.3s ease;
+}
+.month-picker .arrow.arrow-rotate[data-v-fc23ec97] {
+  transform: rotate(180deg);
+}
+.empty-state[data-v-fc23ec97] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3.125rem 0;
+}
+.empty-state .empty-image[data-v-fc23ec97] {
+  width: 6.25rem;
+  height: 6.25rem;
+  margin-bottom: 0.625rem;
+}
+.empty-state .empty-text[data-v-fc23ec97] {
+  font-size: 0.875rem;
+  color: #999;
+  margin-bottom: 0.9375rem;
+}
+.empty-state .add-btn[data-v-fc23ec97] {
+  width: 6.25rem;
+  height: 2.5rem;
+  line-height: 2.5rem;
+  font-size: 0.875rem;
+  color: #fff;
+  background-color: #3498db;
+  border-radius: 1.25rem;
 }

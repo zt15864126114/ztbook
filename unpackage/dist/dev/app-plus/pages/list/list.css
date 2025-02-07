@@ -23,200 +23,155 @@
 /* 垂直间距 */
 /* 透明度 */
 /* 文章场景相关 */
-.uni-popup[data-v-7db519c7] {
-  position: fixed;
-  z-index: 99;
-}
-.uni-popup.top[data-v-7db519c7], .uni-popup.left[data-v-7db519c7], .uni-popup.right[data-v-7db519c7] {
-  top: 0;
-}
-.uni-popup .uni-popup__wrapper[data-v-7db519c7] {
-  display: block;
-  position: relative;
-  /* iphonex 等安全区设置，底部安全区适配 */
-}
-.uni-popup .uni-popup__wrapper.left[data-v-7db519c7], .uni-popup .uni-popup__wrapper.right[data-v-7db519c7] {
-  padding-top: 0;
-  flex: 1;
-}
-.fixforpc-z-index[data-v-7db519c7] {
-  z-index: 999;
-}
-.fixforpc-top[data-v-7db519c7] {
-  top: 0;
-}
-/**
- * 这里是uni-app内置的常用样式变量
- *
- * uni-app 官方扩展插件及插件市场（https://ext.dcloud.net.cn）上很多三方插件均使用了这些样式变量
- * 如果你是插件开发者，建议你使用scss预处理，并在插件代码中直接使用这些变量（无需 import 这个文件），方便用户通过搭积木的方式开发整体风格一致的App
- *
- */
-/**
- * 如果你是App开发者（插件使用者），你可以通过修改这些变量来定制自己的插件主题，实现自定义主题功能
- *
- * 如果你的项目同样使用了scss预处理，你也可以直接在你的 scss 代码中使用如下变量，同时无需 import 这个文件
- */
-/* 颜色变量 */
-/* 行为相关颜色 */
-/* 文字基本颜色 */
-/* 背景颜色 */
-/* 边框颜色 */
-/* 尺寸变量 */
-/* 文字尺寸 */
-/* 图片尺寸 */
-/* Border Radius */
-/* 水平间距 */
-/* 垂直间距 */
-/* 透明度 */
-/* 文章场景相关 */
 .container[data-v-98a9e0b2] {
+  min-height: 100vh;
+  background-color: #f7f8fa;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background-color: #f5f5f5;
 }
 .month-header[data-v-98a9e0b2] {
-  padding: 0.625rem 0.9375rem;
-  background-color: #fff;
-  height: 52px;
-  box-sizing: border-box;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: relative;
-  z-index: 1;
+  padding: 0.75rem 1rem;
+  background-color: #fff;
 }
 .month-header .month-picker[data-v-98a9e0b2] {
   display: flex;
-  align-items: center;
+  align-items: baseline;
 }
 .month-header .month-picker .year[data-v-98a9e0b2] {
-  font-size: 0.875rem;
-  color: #666;
-  margin-right: 0.3125rem;
+  font-size: 1rem;
+  color: #333;
+  margin-right: 0.25rem;
 }
 .month-header .month-picker .month[data-v-98a9e0b2] {
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: bold;
-  margin-right: 0.3125rem;
+  color: #333;
+  margin-right: 0.25rem;
 }
 .month-header .month-picker .arrow[data-v-98a9e0b2] {
   font-size: 0.75rem;
   color: #666;
 }
-.month-header .total .label[data-v-98a9e0b2] {
-  font-size: 0.75rem;
-  color: #666;
-  margin-right: 0.3125rem;
+.month-header .total[data-v-98a9e0b2] {
+  text-align: right;
 }
-.month-header .total .amount[data-v-98a9e0b2] {
+.month-header .total uni-text[data-v-98a9e0b2] {
+  font-size: 0.875rem;
+  color: #333;
+}
+.month-header .total uni-text.amount[data-v-98a9e0b2] {
+  margin-left: 0.25rem;
   font-size: 1rem;
   font-weight: bold;
 }
 .bill-list[data-v-98a9e0b2] {
   flex: 1;
-  padding: 0.625rem;
-  box-sizing: border-box;
 }
-.date-group[data-v-98a9e0b2] {
-  margin-bottom: 0.625rem;
-}
-.date-group[data-v-98a9e0b2]:last-child {
-  margin-bottom: 0;
-  padding-bottom: 0.625rem;
-}
-.date-group .date-header[data-v-98a9e0b2] {
+.bill-list .date-group .date-header[data-v-98a9e0b2] {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 0.625rem 0;
-}
-.date-group .date-header .date[data-v-98a9e0b2] {
+  padding: 0.625rem 1rem;
   font-size: 0.875rem;
   color: #666;
+  background-color: #f5f5f5;
 }
-.date-group .date-header .day-total[data-v-98a9e0b2] {
-  font-size: 0.75rem;
-  color: #999;
-}
-.date-group .bill-items[data-v-98a9e0b2] {
+.bill-list .date-group .bill-item[data-v-98a9e0b2] {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
   background-color: #fff;
-  border-radius: 0.375rem;
-  overflow: hidden;
-  transition: transform 0.3s ease;
+  border-bottom: 0.03125rem solid #f5f5f5;
 }
-.date-group .bill-items .bill-item[data-v-98a9e0b2] {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.625rem;
-  border-bottom: 0.03125rem solid #eee;
-}
-.date-group .bill-items .bill-item[data-v-98a9e0b2]:last-child {
-  border-bottom: none;
-}
-.date-group .bill-items .bill-item .left[data-v-98a9e0b2] {
-  display: flex;
-  align-items: center;
-}
-.date-group .bill-items .bill-item .left .icon[data-v-98a9e0b2] {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
+.bill-list .date-group .bill-item .category-icon[data-v-98a9e0b2] {
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-right: 0.75rem;
+  border-radius: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 0.625rem;
+  font-size: 1.25rem;
+}
+.bill-list .date-group .bill-item .bill-info[data-v-98a9e0b2] {
+  flex: 1;
+}
+.bill-list .date-group .bill-item .bill-info .category[data-v-98a9e0b2] {
   font-size: 1rem;
-}
-.date-group .bill-items .bill-item .left .detail .category[data-v-98a9e0b2] {
-  font-size: 0.875rem;
   color: #333;
+  margin-bottom: 0.25rem;
 }
-.date-group .bill-items .bill-item .left .detail .note[data-v-98a9e0b2] {
-  font-size: 0.75rem;
+.bill-list .date-group .bill-item .bill-info .remark[data-v-98a9e0b2] {
+  font-size: 0.875rem;
   color: #999;
-  margin-top: 0.125rem;
 }
-.date-group .bill-items .bill-item .right[data-v-98a9e0b2] {
+.bill-list .date-group .bill-item .bill-amount[data-v-98a9e0b2] {
   text-align: right;
 }
-.date-group .bill-items .bill-item .right .amount[data-v-98a9e0b2] {
+.bill-list .date-group .bill-item .bill-amount .amount[data-v-98a9e0b2] {
+  display: block;
   font-size: 1rem;
   color: #333;
-  font-weight: 500;
+  margin-bottom: 0.25rem;
 }
-.date-group .bill-items .bill-item .right .time[data-v-98a9e0b2] {
+.bill-list .date-group .bill-item .bill-amount .time[data-v-98a9e0b2] {
   font-size: 0.75rem;
   color: #999;
-  margin-top: 0.125rem;
-  display: block;
 }
-.loading-state[data-v-98a9e0b2], .empty-state[data-v-98a9e0b2] {
-  text-align: center;
-  padding: 1.25rem;
-  color: #999;
-  font-size: 0.875rem;
+.bill-list .date-group .bill-item[data-v-98a9e0b2]:active {
+  background-color: #f9f9f9;
 }
-.action-sheet[data-v-98a9e0b2] {
-  background-color: #fff;
-  border-radius: 0.625rem 0.625rem 0 0;
-  overflow: hidden;
+.bill-list .date-group .bill-item.animate[data-v-98a9e0b2] {
+  animation: slideIn-98a9e0b2 0.3s ease-out;
 }
-.action-sheet .action-item[data-v-98a9e0b2] {
-  height: 3.125rem;
+@keyframes slideIn-98a9e0b2 {
+from {
+    opacity: 0;
+    transform: translateY(0.625rem);
+}
+to {
+    opacity: 1;
+    transform: translateY(0);
+}
+}
+.bill-list .date-group .bill-item.animate-leave[data-v-98a9e0b2] {
+  animation: slideOut-98a9e0b2 0.3s ease-out;
+}
+@keyframes slideOut-98a9e0b2 {
+from {
+    opacity: 1;
+    transform: translateX(0);
+}
+to {
+    opacity: 0;
+    transform: translateX(-100%);
+}
+}
+.empty-state[data-v-98a9e0b2] {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
-  border-bottom: 0.03125rem solid #eee;
+  padding: 3.125rem 0;
 }
-.action-sheet .action-item.cancel[data-v-98a9e0b2] {
+.empty-state .empty-image[data-v-98a9e0b2] {
+  width: 6.25rem;
+  height: 6.25rem;
+  margin-bottom: 0.625rem;
+}
+.empty-state .empty-text[data-v-98a9e0b2] {
+  font-size: 0.875rem;
   color: #999;
-  margin-top: 0.625rem;
+  margin-bottom: 0.9375rem;
 }
-.safe-area-bottom[data-v-98a9e0b2] {
-  height: var(--safe-area-inset-bottom);
-  background-color: #fff;
+.empty-state .add-btn[data-v-98a9e0b2] {
+  width: 6.25rem;
+  height: 2.5rem;
+  line-height: 2.5rem;
+  font-size: 0.875rem;
+  color: #fff;
+  background-color: #3498db;
+  border-radius: 1.25rem;
 }

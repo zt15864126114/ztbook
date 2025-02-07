@@ -16,7 +16,8 @@
 			"path": "pages/list/list",
 			"style": {
 				"navigationBarTitleText": "账单明细",
-				"enablePullDownRefresh": true
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark"
 			}
 		},
 		{
@@ -29,6 +30,20 @@
 			"path": "pages/settings/settings",
 			"style": {
 				"navigationBarTitleText": "设置"
+			}
+		},
+		{
+			"path": "pages/category-detail/category-detail",
+			"style": {
+				"navigationBarTitleText": "分类明细",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/password/password",
+			"style": {
+				"navigationBarTitleText": "密码验证",
+				"navigationStyle": "custom"
 			}
 		}
 	],

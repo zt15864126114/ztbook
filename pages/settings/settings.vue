@@ -1,117 +1,299 @@
 <template>
-	<view class="container">
-		<!-- 用户信息 -->
-		<view class="user-info">
-			<view class="avatar">
-				<image :src="defaultAvatar" mode="aspectFill"></image>
+	<view :class="['container', darkMode ? 'dark' : '']">
+		<!-- 用户信息区域 -->
+		<view class="section user-section">
+			<view class="section-title">账户信息</view>
+			<view class="setting-item" @click="setMonthlyBudget">
+				<text class="item-label">月度预算</text>
+				<view class="item-value">
+					<text>{{ accountStore.currencySymbol }}{{ accountStore.formattedBudget }}</text>
+					<text class="iconfont icon-right"></text>
+				</view>
 			</view>
-			<view class="info">
-				<text class="nickname">{{ userInfo.nickname || '点击登录' }}</text>
-				<text class="desc">{{ userInfo.desc || '登录后体验更多功能' }}</text>
+			<view class="setting-item" @click="showCurrencyPicker">
+				<text class="item-label">货币单位</text>
+				<view class="item-value">
+					<text>{{ currencies.find(c => c.code === accountStore.currency)?.name || '人民币' }}</text>
+					<text class="iconfont icon-right"></text>
+				</view>
+			</view>
+			<view class="setting-item">
+				<text class="item-label">预算提醒</text>
+				<switch 
+					:checked="budgetAlert" 
+					@change="toggleBudgetAlert"
+					color="#3498db"
+				/>
 			</view>
 		</view>
 		
-		<!-- 设置列表 -->
-		<view class="settings-list">
-			<!-- 预算设置 -->
-			<view class="settings-group">
-				<view class="group-title">预算管理</view>
-				<view class="settings-item" @click="showBudgetModal">
-					<text class="label">月度预算</text>
-					<view class="value">
-						<text>¥{{ budget }}</text>
-						<text class="arrow">></text>
+		<!-- 数据管理 -->
+		<view class="section">
+			<view class="section-title">数据管理</view>
+			<view class="setting-item" @click="exportData">
+				<text class="item-label">导出账单</text>
+				<text class="iconfont icon-right"></text>
+			</view>
+			<view class="setting-item" @click="backupData">
+				<text class="item-label">备份数据</text>
+				<text class="iconfont icon-right"></text>
+			</view>
+			<view class="setting-item" @click="clearData">
+				<text class="item-label danger">清空数据</text>
+				<text class="iconfont icon-right"></text>
+			</view>
+			<view class="setting-item" @click="clearCache">
+				<text class="item-label">清除缓存</text>
+				<view class="item-value">
+					<text>{{ cacheSize }}</text>
+					<text class="iconfont icon-right"></text>
+				</view>
+			</view>
+			<view class="setting-item" @click="showCategoryManager">
+				<text class="item-label">分类管理</text>
+				<text class="iconfont icon-right"></text>
+			</view>
+			<view class="setting-item" @click="restoreData">
+				<text class="item-label">恢复数据</text>
+				<text class="iconfont icon-right"></text>
+			</view>
+			<view class="setting-item">
+				<text class="item-label">自动备份</text>
+				<switch 
+					:checked="autoBackup" 
+					@change="toggleAutoBackup"
+					color="#3498db"
+				/>
+			</view>
+		</view>
+		
+		<!-- 关于 -->
+		<view class="section">
+			<view class="section-title">关于</view>
+			<view class="setting-item" @click="checkUpdate">
+				<text class="item-label">检查更新</text>
+				<view class="item-value">
+					<text class="version">v1.0.0</text>
+					<text class="iconfont icon-right"></text>
+				</view>
+			</view>
+			<view class="setting-item" @click="showAbout">
+				<text class="item-label">关于我们</text>
+				<text class="iconfont icon-right"></text>
+			</view>
+		</view>
+		
+		<!-- 添加主题设置部分 -->
+		<view class="section">
+			<view class="section-title">显示设置</view>
+			<view class="setting-item">
+				<text class="item-label">深色模式</text>
+				<switch 
+					:checked="darkMode" 
+					@change="toggleDarkMode"
+					color="#3498db"
+				/>
+			</view>
+			<view class="setting-item">
+				<text class="item-label">字体大小</text>
+				<view class="font-size-slider">
+					<slider 
+						:value="fontSize" 
+						@change="changeFontSize"
+						min="12"
+						max="20"
+						show-value
+					/>
+				</view>
+			</view>
+			<view class="setting-item">
+				<text class="item-label">列表动画</text>
+				<switch 
+					:checked="listAnimation" 
+					@change="toggleListAnimation"
+					color="#3498db"
+				/>
+			</view>
+			<view class="setting-item">
+				<text class="item-label">金额千分位</text>
+				<switch 
+					:checked="thousandsSeparator" 
+					@change="toggleThousandsSeparator"
+					color="#3498db"
+				/>
+			</view>
+		</view>
+	</view>
+	
+	<!-- 添加分类管理弹窗 -->
+	<uni-popup ref="categoryPopup" type="bottom">
+		<view class="category-manager">
+			<view class="popup-header">
+				<text class="title">分类管理</text>
+				<text class="close" @click="closeCategoryManager">×</text>
+			</view>
+			<scroll-view scroll-y class="category-list">
+				<view 
+					v-for="category in accountStore.categories" 
+					:key="category.id"
+					class="category-item"
+				>
+					<view class="category-info">
+						<view class="icon" :style="{ backgroundColor: category.color }">
+							{{ category.icon }}
+						</view>
+						<text class="name">{{ category.name }}</text>
+					</view>
+					<view class="actions">
+						<button class="edit-btn" @click="editCategory(category)">编辑</button>
+						<button 
+							class="delete-btn" 
+							@click="deleteCategory(category)"
+							:disabled="category.isDefault"
+						>删除</button>
 					</view>
 				</view>
-				<view class="settings-item">
-					<text class="label">预算提醒</text>
-					<switch :checked="budgetAlert" @change="toggleBudgetAlert" color="#3498db" />
+				<view class="add-category" @click="addCategory">
+					<text class="plus">+</text>
+					<text>添加分类</text>
 				</view>
-			</view>
-			
-			<!-- 分类管理 -->
-			<view class="settings-group">
-				<view class="group-title">分类管理</view>
-				<view class="settings-item" @click="navigateToCategories">
-					<text class="label">自定义分类</text>
-					<text class="arrow">></text>
-				</view>
-				<view class="settings-item" @click="navigateToTags">
-					<text class="label">标签管理</text>
-					<text class="arrow">></text>
-				</view>
-			</view>
-			
-			<!-- 数据管理 -->
-			<view class="settings-group">
-				<view class="group-title">数据管理</view>
-				<view class="settings-item" @click="exportData">
-					<text class="label">导出账单</text>
-					<text class="arrow">></text>
-				</view>
-				<view class="settings-item" @click="showBackupModal">
-					<text class="label">数据备份</text>
-					<text class="arrow">></text>
-				</view>
-			</view>
-			
-			<!-- 其他设置 -->
-			<view class="settings-group">
-				<view class="group-title">其他设置</view>
-				<view class="settings-item">
-					<text class="label">深色模式</text>
-					<switch :checked="darkMode" @change="toggleDarkMode" color="#3498db" />
-				</view>
-				<view class="settings-item" @click="clearCache">
-					<text class="label">清除缓存</text>
-					<text class="value">{{ cacheSize }}</text>
-				</view>
-				<view class="settings-item" @click="showAbout">
-					<text class="label">关于我们</text>
-					<text class="arrow">></text>
-				</view>
-			</view>
+			</scroll-view>
 		</view>
-		
-		<!-- 预算设置弹窗 -->
-		<uni-popup ref="budgetPopup" type="dialog">
-			<uni-popup-dialog
-				mode="input"
-				title="设置月度预算"
-				placeholder="请输入预算金额"
-				:value="String(budget)"
-				@confirm="setBudget"
-			/>
-		</uni-popup>
-	</view>
+	</uni-popup>
+	
+	<!-- 添加货币选择弹窗 -->
+	<uni-popup ref="currencyPopup" type="bottom">
+		<view class="currency-picker">
+			<view class="popup-header">
+				<text class="title">选择货币</text>
+				<text class="close" @click="closeCurrencyPicker">×</text>
+			</view>
+			<scroll-view scroll-y class="currency-list">
+				<view 
+					v-for="item in currencies" 
+					:key="item.code"
+					class="currency-item"
+					:class="{ active: accountStore.currency === item.code }"
+					@click="selectCurrency(item)"
+				>
+					<text class="symbol">{{ item.symbol }}</text>
+					<text class="name">{{ item.name }}</text>
+					<text class="code">{{ item.code }}</text>
+				</view>
+			</scroll-view>
+		</view>
+	</uni-popup>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, getCurrentInstance } from 'vue'
 import { useAccountStore } from '@/stores/account'
+import { ref, onMounted } from 'vue'
 
-const { proxy } = getCurrentInstance()
 const accountStore = useAccountStore()
-const budgetPopup = ref(null)
 
-// 用户信息
-const userInfo = ref({
-	nickname: '',
-	desc: '',
-	avatar: ''
-})
-
-// 默认头像
-const defaultAvatar = '/static/default-avatar.png'
-
-// 设置数据
-const budget = computed(() => accountStore.budget)
+// 预算提醒开关
 const budgetAlert = ref(uni.getStorageSync('budgetAlert') || false)
+
+// 深色模式
 const darkMode = ref(uni.getStorageSync('darkMode') || false)
+const fontSize = ref(uni.getStorageSync('fontSize') || 14)
+
 const cacheSize = ref('0.00MB')
 
-// 显示预算设置弹窗
-function showBudgetModal() {
+const categoryPopup = ref(null)
+
+// 自动备份
+const autoBackup = ref(uni.getStorageSync('autoBackup') || false)
+
+// 添加货币选择弹窗
+const currencyPopup = ref(null)
+
+// 货币列表
+const currencies = ref([
+	{ code: 'CNY', symbol: '¥', name: '人民币' },
+	{ code: 'USD', symbol: '$', name: '美元' },
+	{ code: 'EUR', symbol: '€', name: '欧元' },
+	{ code: 'GBP', symbol: '£', name: '英镑' },
+	{ code: 'JPY', symbol: '¥', name: '日元' },
+	{ code: 'KRW', name: '韩元', symbol: '₩' },
+	{ code: 'HKD', name: '港币', symbol: 'HK$' },
+	{ code: 'AUD', name: '澳元', symbol: 'A$' },
+	{ code: 'CAD', name: '加元', symbol: 'CA$' },
+	{ code: 'CHF', name: '瑞士法郎', symbol: 'CHF' },
+	{ code: 'SEK', name: '瑞典克朗', symbol: 'SEK' },
+	{ code: 'NOK', name: '挪威克朗', symbol: 'NOK' },
+	{ code: 'NZD', name: '新西兰元', symbol: 'NZ$' },
+	{ code: 'SGD', name: '新加坡元', symbol: 'S$' },
+	{ code: 'THB', name: '泰铢', symbol: '฿' },
+	{ code: 'ZAR', name: '南非兰特', symbol: 'R' },
+	{ code: 'INR', name: '印度卢比', symbol: '₹' },
+	{ code: 'BRL', name: '巴西雷亚尔', symbol: 'R$' },
+	{ code: 'RUB', name: '俄罗斯卢布', symbol: '₽' },
+	{ code: 'TRY', name: '土耳其里拉', symbol: '₺' },
+	{ code: 'CNY', name: '人民币', symbol: '¥' },
+])
+
+// 添加新的设置项变量
+const listAnimation = ref(uni.getStorageSync('listAnimation') ?? true)
+const thousandsSeparator = ref(uni.getStorageSync('thousandsSeparator') ?? false)
+
+// 切换预算提醒
+function toggleBudgetAlert(e) {
+	budgetAlert.value = e.detail.value
+	uni.setStorageSync('budgetAlert', budgetAlert.value)
+	
+	if (budgetAlert.value) {
+		uni.showToast({
+			title: '已开启预算提醒',
+			icon: 'success'
+		})
+	}
+}
+
+// 切换深色模式
+function toggleDarkMode(e) {
+	darkMode.value = e.detail.value
+	uni.setStorageSync('darkMode', darkMode.value)
+	
+	// 应用深色模式
+	if (darkMode.value) {
+		// 使用 uni.setTabBarStyle 设置底部导航栏样式
+		uni.setTabBarStyle({
+			backgroundColor: '#2d2d2d',
+			borderStyle: 'black',
+			color: '#8F8F8F',
+			selectedColor: '#3498db'
+		})
+		// 设置导航栏样式
+		uni.setNavigationBarColor({
+			frontColor: '#ffffff',
+			backgroundColor: '#2d2d2d'
+		})
+	} else {
+		// 恢复默认样式
+		uni.setTabBarStyle({
+			backgroundColor: '#ffffff',
+			borderStyle: 'white',
+			color: '#8F8F8F',
+			selectedColor: '#3498db'
+		})
+		uni.setNavigationBarColor({
+			frontColor: '#000000',
+			backgroundColor: '#ffffff'
+		})
+	}
+}
+
+// 修改字体大小
+function changeFontSize(e) {
+	fontSize.value = e.detail.value
+	uni.setStorageSync('fontSize', fontSize.value)
+	// 应用字体大小
+	document.documentElement.style.fontSize = `${fontSize.value}px`
+}
+
+// 设置月度预算
+function setMonthlyBudget() {
 	uni.showModal({
 		title: '设置月度预算',
 		editable: true,
@@ -119,11 +301,95 @@ function showBudgetModal() {
 		success: (res) => {
 			if (res.confirm && res.content) {
 				const amount = Number(res.content)
-				if (!isNaN(amount) && amount > 0) {
-					accountStore.setBudget(amount)
+				if (isNaN(amount) || amount < 0) {
 					uni.showToast({
-						title: '设置成功',
+						title: '请输入有效金额',
+						icon: 'none'
+					})
+					return
+				}
+				accountStore.setBudget(amount)
+				uni.showToast({
+					title: '设置成功',
+					icon: 'success'
+				})
+			}
+		}
+	})
+}
+
+// 导出数据
+function exportData() {
+	const data = accountStore.accounts
+	const csv = convertToCSV(data)
+	
+	// #ifdef H5
+	const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+	const link = document.createElement('a')
+	link.href = URL.createObjectURL(blob)
+	link.download = `账单数据_${new Date().toLocaleDateString()}.csv`
+	link.click()
+	// #endif
+	
+	// #ifdef MP
+	uni.showToast({
+		title: '小程序暂不支持导出',
+		icon: 'none'
+	})
+	// #endif
+}
+
+// 备份数据
+function backupData(silent = false) {
+	try {
+		const data = {
+			accounts: accountStore.accounts,
+			categories: accountStore.categories,
+			budget: accountStore.budget,
+			budgetAlert: budgetAlert.value,
+			autoBackup: autoBackup.value,
+			backupTime: new Date().toISOString()
+		}
+		uni.setStorageSync('backup_data', data)
+		
+		if (!silent) {
+			uni.showToast({
+				title: '备份成功',
+				icon: 'success'
+			})
+		}
+	} catch (error) {
+		if (!silent) {
+			uni.showToast({
+				title: '备份失败',
+				icon: 'error'
+			})
+		}
+	}
+}
+
+// 清空数据
+function clearData() {
+	uni.showModal({
+		title: '确认清空',
+		content: '此操作将清空所有账单数据，无法恢复，是否继续？',
+		confirmColor: '#ff0000',
+		success: (res) => {
+			if (res.confirm) {
+				try {
+					// 先备份
+					backupData()
+					// 清空数据
+					accountStore.$reset()
+					accountStore.saveAccounts()
+					uni.showToast({
+						title: '已清空数据',
 						icon: 'success'
+					})
+				} catch (error) {
+					uni.showToast({
+						title: '操作失败',
+						icon: 'error'
 					})
 				}
 			}
@@ -131,67 +397,38 @@ function showBudgetModal() {
 	})
 }
 
-// 切换预算提醒
-function toggleBudgetAlert(e) {
-	budgetAlert.value = e.detail.value
-	uni.setStorageSync('budgetAlert', budgetAlert.value)
-}
-
-// 切换深色模式
-function toggleDarkMode(e) {
-	darkMode.value = e.detail.value
-	uni.setStorageSync('darkMode', darkMode.value)
-}
-
-// 导航到分类管理
-function navigateToCategories() {
+// 检查更新
+function checkUpdate() {
 	uni.showToast({
-		title: '功能开发中',
+		title: '已是最新版本',
 		icon: 'none'
 	})
 }
 
-// 导航到标签管理
-function navigateToTags() {
-	uni.showToast({
-		title: '功能开发中',
-		icon: 'none'
-	})
-}
-
-// 导出数据
-function exportData() {
-	const data = {
-		accounts: accountStore.accounts,
-		categories: accountStore.categories,
-		tags: accountStore.tags,
-		budget: accountStore.budget,
-		exportTime: proxy.$dayjs().format('YYYY-MM-DD HH:mm:ss')
-	}
-	
-	const str = JSON.stringify(data, null, 2)
-	uni.showToast({
-		title: '功能开发中',
-		icon: 'none'
-	})
-}
-
-// 清除缓存
-function clearCache() {
+// 关于我们
+function showAbout() {
 	uni.showModal({
-		title: '提示',
-		content: '确定要清除缓存吗？',
-		success: (res) => {
-			if (res.confirm) {
-				uni.clearStorageSync()
-				uni.showToast({
-					title: '清除成功',
-					icon: 'success'
-				})
-				getCacheSize()
-			}
-		}
+		title: '关于记账本',
+		content: '这是一个简单的记账应用，帮助您更好地管理个人财务。\n\n开发者：Claude\n版本：1.0.0',
+		showCancel: false,
+		confirmText: '知道了'
 	})
+}
+
+// 转换为CSV格式
+function convertToCSV(data) {
+	const headers = ['日期', '分类', '金额', '备注']
+	const rows = data.map(item => [
+		new Date(item.createTime).toLocaleString(),
+		item.category,
+		item.amount,
+		item.remark || ''
+	])
+	
+	return [
+		headers.join(','),
+		...rows.map(row => row.join(','))
+	].join('\n')
 }
 
 // 获取缓存大小
@@ -204,104 +441,527 @@ function getCacheSize() {
 	})
 }
 
-// 显示关于页面
-function showAbout() {
+// 清除缓存
+function clearCache() {
 	uni.showModal({
-		title: '关于我们',
-		content: '这是一个简单的记账应用\n版本：1.0.0',
-		showCancel: false
+		title: '清除缓存',
+		content: '确定要清除缓存吗？\n(不会删除账单数据)',
+		success: (res) => {
+			if (res.confirm) {
+				// 保存重要数据
+				const accounts = accountStore.accounts
+				const budget = accountStore.budget
+				const budgetAlert = uni.getStorageSync('budgetAlert')
+				
+				// 清除所有缓存
+				uni.clearStorageSync()
+				
+				// 恢复重要数据
+				accountStore.accounts = accounts
+				accountStore.budget = budget
+				uni.setStorageSync('budgetAlert', budgetAlert)
+				
+				// 更新缓存大小显示
+				getCacheSize()
+				
+				uni.showToast({
+					title: '清除成功',
+					icon: 'success'
+				})
+			}
+		}
 	})
 }
 
 // 页面加载时获取缓存大小
 onMounted(() => {
 	getCacheSize()
+	
+	// 初始化深色模式
+	if (darkMode.value) {
+		uni.setTabBarStyle({
+			backgroundColor: '#2d2d2d',
+			borderStyle: 'black',
+			color: '#8F8F8F',
+			selectedColor: '#3498db'
+		})
+		uni.setNavigationBarColor({
+			frontColor: '#ffffff',
+			backgroundColor: '#2d2d2d'
+		})
+	}
+	
+	// 检查是否需要自动备份
+	if (autoBackup.value) {
+		const lastBackup = uni.getStorageSync('backup_data')?.backupTime
+		if (!lastBackup || isBackupOutdated(lastBackup)) {
+			backupData(true) // 静默备份
+		}
+	}
 })
+
+// 检查备份是否过期（超过24小时）
+function isBackupOutdated(lastBackupTime) {
+	const last = new Date(lastBackupTime)
+	const now = new Date()
+	const hours = (now - last) / (1000 * 60 * 60)
+	return hours >= 24
+}
+
+// 显示分类管理
+function showCategoryManager() {
+	categoryPopup.value.open()
+}
+
+// 关闭分类管理
+function closeCategoryManager() {
+	categoryPopup.value.close()
+}
+
+// 添加分类
+function addCategory() {
+	uni.showModal({
+		title: '添加分类',
+		editable: true,
+		placeholderText: '请输入分类名称',
+		success: (res) => {
+			if (res.confirm && res.content) {
+				const newCategory = {
+					id: Date.now(),
+					name: res.content,
+					icon: '📝', // 默认图标
+					color: '#999999', // 默认颜色
+					isDefault: false
+				}
+				accountStore.addCategory(newCategory)
+				uni.showToast({
+					title: '添加成功',
+					icon: 'success'
+				})
+			}
+		}
+	})
+}
+
+// 编辑分类
+function editCategory(category) {
+	if (category.isDefault) {
+		uni.showToast({
+			title: '默认分类不可编辑',
+			icon: 'none'
+		})
+		return
+	}
+	
+	uni.showModal({
+		title: '编辑分类',
+		editable: true,
+		content: category.name,
+		success: (res) => {
+			if (res.confirm && res.content) {
+				accountStore.updateCategory(category.id, {
+					...category,
+					name: res.content
+				})
+				uni.showToast({
+					title: '修改成功',
+					icon: 'success'
+				})
+			}
+		}
+	})
+}
+
+// 删除分类
+function deleteCategory(category) {
+	if (category.isDefault) return
+	
+	uni.showModal({
+		title: '确认删除',
+		content: '删除分类后，该分类下的账单将被归类为"其他"，是否继续？',
+		success: (res) => {
+			if (res.confirm) {
+				accountStore.deleteCategory(category.id)
+				uni.showToast({
+					title: '删除成功',
+					icon: 'success'
+				})
+			}
+		}
+	})
+}
+
+// 恢复数据
+function restoreData() {
+	uni.showModal({
+		title: '恢复数据',
+		content: '将恢复到最近一次的备份数据，当前数据将被覆盖，是否继续？',
+		success: (res) => {
+			if (res.confirm) {
+				try {
+					const backupData = uni.getStorageSync('backup_data')
+					if (!backupData) {
+						uni.showToast({
+							title: '没有备份数据',
+							icon: 'none'
+						})
+						return
+					}
+					
+					// 恢复账单数据
+					accountStore.accounts = backupData.accounts || []
+					accountStore.saveAccounts()
+					
+					// 恢复分类数据
+					accountStore.categories = backupData.categories || []
+					accountStore.saveCategories()
+					
+					// 恢复预算设置
+					if (backupData.budget) {
+						accountStore.setBudget(backupData.budget)
+					}
+					
+					// 恢复其他设置
+					if (backupData.budgetAlert !== undefined) {
+						budgetAlert.value = backupData.budgetAlert
+						uni.setStorageSync('budgetAlert', budgetAlert.value)
+					}
+					
+					uni.showToast({
+						title: '恢复成功',
+						icon: 'success'
+					})
+				} catch (error) {
+					uni.showToast({
+						title: '恢复失败',
+						icon: 'error'
+					})
+				}
+			}
+		}
+	})
+}
+
+// 切换自动备份
+function toggleAutoBackup(e) {
+	autoBackup.value = e.detail.value
+	uni.setStorageSync('autoBackup', autoBackup.value)
+	
+	if (autoBackup.value) {
+		uni.showToast({
+			title: '已开启自动备份',
+			icon: 'success'
+		})
+	}
+}
+
+// 显示货币选择弹窗
+function showCurrencyPicker() {
+	currencyPopup.value.open()
+}
+
+// 关闭货币选择弹窗
+function closeCurrencyPicker() {
+	currencyPopup.value.close()
+}
+
+// 选择货币
+function selectCurrency(item) {
+	accountStore.setCurrency(item.code)
+	currencyPopup.value.close()
+	
+	uni.showToast({
+		title: '设置成功',
+		icon: 'success'
+	})
+}
+
+// 切换列表动画
+function toggleListAnimation(e) {
+	listAnimation.value = e.detail.value
+	uni.setStorageSync('listAnimation', listAnimation.value)
+}
+
+// 切换千分位显示
+function toggleThousandsSeparator(e) {
+	thousandsSeparator.value = e.detail.value
+	uni.setStorageSync('thousandsSeparator', thousandsSeparator.value)
+	accountStore.setThousandsSeparator(thousandsSeparator.value)
+}
 </script>
 
 <style lang="scss" scoped>
 .container {
 	min-height: 100vh;
-	background-color: #f5f5f5;
-}
-
-.user-info {
-	background-color: #fff;
-	padding: 40rpx 30rpx;
-	display: flex;
-	align-items: center;
+	background-color: #f7f8fa;
+	padding: 24rpx;
 	
-	.avatar {
-		width: 120rpx;
-		height: 120rpx;
-		border-radius: 60rpx;
-		overflow: hidden;
-		margin-right: 30rpx;
+	&.dark {
+		background-color: #1a1a1a;
 		
-		image {
-			width: 100%;
-			height: 100%;
-		}
-	}
-	
-	.info {
-		flex: 1;
-		
-		.nickname {
-			font-size: 32rpx;
-			font-weight: bold;
-			color: #333;
-			margin-bottom: 10rpx;
-			display: block;
-		}
-		
-		.desc {
-			font-size: 24rpx;
-			color: #999;
+		.section {
+			background-color: #2d2d2d;
+			
+			.section-title {
+				color: #888;
+				border-bottom-color: #3d3d3d;
+			}
 		}
 	}
 }
 
-.settings-group {
-	margin-top: 20rpx;
+.section {
 	background-color: #fff;
+	border-radius: 12rpx;
+	margin-bottom: 24rpx;
+	overflow: hidden;
 	
-	.group-title {
+	.section-title {
 		font-size: 28rpx;
-		color: #666;
-		padding: 20rpx 30rpx;
+		color: #999;
+		padding: 24rpx;
+		border-bottom: 1rpx solid #f5f5f5;
+	}
+}
+
+.setting-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 32rpx 24rpx;
+	background-color: #fff;
+	
+	&:not(:last-child) {
+		border-bottom: 1rpx solid #f5f5f5;
 	}
 	
-	.settings-item {
+	.item-label {
+		font-size: 32rpx;
+		color: #333;
+		
+		&.danger {
+			color: #ff0000;
+		}
+	}
+	
+	.item-value {
+		display: flex;
+		align-items: center;
+		color: #666;
+		font-size: 28rpx;
+		
+		.version {
+			margin-right: 8rpx;
+		}
+		
+		&.disabled {
+			color: #999;
+			font-size: 28rpx;
+		}
+	}
+	
+	.iconfont {
+		font-size: 32rpx;
+		color: #999;
+		margin-left: 8rpx;
+	}
+	
+	&:active {
+		background-color: #f9f9f9;
+	}
+}
+
+.font-size-slider {
+	flex: 1;
+	padding: 0 20rpx;
+	
+	.uni-slider {
+		margin: 0;
+	}
+}
+
+.category-manager {
+	background-color: #fff;
+	border-radius: 24rpx 24rpx 0 0;
+	height: 85vh;
+	display: flex;
+	flex-direction: column;
+	
+	.popup-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		padding: 30rpx;
 		border-bottom: 1rpx solid #eee;
 		
-		&:last-child {
-			border-bottom: none;
+		.title {
+			font-size: 32rpx;
+			font-weight: bold;
 		}
 		
-		.label {
-			font-size: 28rpx;
-			color: #333;
+		.close {
+			font-size: 40rpx;
+			color: #999;
+			padding: 0 20rpx;
 		}
+	}
+	
+	.category-list {
+		flex: 1;
+		padding: 20rpx 30rpx;
+		box-sizing: border-box;
 		
-		.value {
-			font-size: 28rpx;
-			color: #666;
+		.category-item {
 			display: flex;
+			justify-content: space-between;
 			align-items: center;
+			padding: 24rpx 0;
+			border-bottom: 1rpx solid #f5f5f5;
 			
-			.arrow {
-				margin-left: 10rpx;
-				color: #999;
+			.category-info {
+				display: flex;
+				align-items: center;
+				
+				.icon {
+					width: 72rpx;
+					height: 72rpx;
+					border-radius: 16rpx;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					margin-right: 20rpx;
+					font-size: 36rpx;
+				}
+				
+				.name {
+					font-size: 32rpx;
+					color: #333;
+				}
+			}
+			
+			.actions {
+				display: flex;
+				gap: 16rpx;
+				
+				button {
+					font-size: 28rpx;
+					padding: 12rpx 24rpx;
+					border-radius: 100rpx;
+					min-width: 120rpx;
+					text-align: center;
+					
+					&.edit-btn {
+						color: #3498db;
+						background-color: #f0f9ff;
+						&:active {
+							background-color: #e3f2fd;
+						}
+					}
+					
+					&.delete-btn {
+						color: #ff0000;
+						background-color: #fff0f0;
+						
+						&:disabled {
+							opacity: 0.5;
+						}
+						&:active:not(:disabled) {
+							background-color: #ffe6e6;
+						}
+					}
+				}
 			}
 		}
 		
-		.arrow {
+		.add-category {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 40rpx 0;
+			margin-top: 20rpx;
+			color: #3498db;
+			font-size: 32rpx;
+			
+			.plus {
+				font-size: 36rpx;
+				margin-right: 8rpx;
+			}
+			
+			&:active {
+				opacity: 0.7;
+			}
+		}
+	}
+}
+
+.currency-picker {
+	background-color: #fff;
+	border-radius: 24rpx 24rpx 0 0;
+	max-height: 80vh;
+	
+	.popup-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx;
+		border-bottom: 1rpx solid #eee;
+		
+		.title {
+			font-size: 32rpx;
+			font-weight: bold;
+		}
+		
+		.close {
+			font-size: 40rpx;
 			color: #999;
+		}
+	}
+	
+	.currency-list {
+		max-height: calc(80vh - 100rpx);
+		padding: 20rpx 30rpx;
+		
+		.currency-item {
+			display: flex;
+			align-items: center;
+			padding: 24rpx 0;
+			border-bottom: 1rpx solid #f5f5f5;
+			
+			&.active {
+				color: #3498db;
+			}
+			
+			.symbol {
+				font-size: 32rpx;
+				margin-right: 20rpx;
+			}
+			
+			.name {
+				flex: 1;
+				font-size: 28rpx;
+			}
+			
+			.code {
+				font-size: 24rpx;
+				color: #999;
+			}
+			
+			&:active {
+				background-color: #f9f9f9;
+			}
+		}
+	}
+}
+
+.picker {
+	.picker-value {
+		display: flex;
+		align-items: center;
+		color: #666;
+		font-size: 28rpx;
+		
+		.iconfont {
+			margin-left: 8rpx;
 		}
 	}
 }

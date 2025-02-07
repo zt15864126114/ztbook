@@ -4,8 +4,8 @@ function getDayjs() {
 	return app.$vm.$.appContext.config.globalProperties.$dayjs
 }
 
-// 格式化日期
-export function formatDate(dateStr) {
+// 格式化日期（显示为今天、昨天、X月X日）
+export function formatDateForDisplay(dateStr) {
 	const dayjs = getDayjs()
 	const date = dayjs(dateStr)
 	const today = dayjs().format('YYYY-MM-DD')
@@ -16,28 +16,45 @@ export function formatDate(dateStr) {
 	return date.format('M月D日')
 }
 
-// 格式化时间
-export function formatTime(time) {
-	const dayjs = getDayjs()
-	return dayjs(time).format('HH:mm')
+// 格式化日期为 YYYY-MM-DD
+export function formatDate(date) {
+	if (typeof date === 'string') {
+		date = new Date(date)
+	}
+	const year = date.getFullYear()
+	const month = String(date.getMonth() + 1).padStart(2, '0')
+	const day = String(date.getDate()).padStart(2, '0')
+	return `${year}-${month}-${day}`
 }
 
-// 格式化完整日期时间
-export function formatDateTime(time) {
-	const dayjs = getDayjs()
-	return dayjs(time).format('YYYY-MM-DD HH:mm')
-}
-
-// 获取当前月份
-export function getCurrentMonth() {
-	const dayjs = getDayjs()
-	return dayjs().month() + 1
+// 格式化时间为 HH:mm
+export function formatTime(date) {
+	if (typeof date === 'string') {
+		date = new Date(date)
+	}
+	const hours = String(date.getHours()).padStart(2, '0')
+	const minutes = String(date.getMinutes()).padStart(2, '0')
+	return `${hours}:${minutes}`
 }
 
 // 获取当前年份
 export function getCurrentYear() {
-	const dayjs = getDayjs()
-	return dayjs().year()
+	return new Date().getFullYear()
+}
+
+// 获取当前月份
+export function getCurrentMonth() {
+	return new Date().getMonth() + 1
+}
+
+// 获取指定月份的天数
+export function getDaysInMonth(year, month) {
+	return new Date(year, month, 0).getDate()
+}
+
+// 格式化日期时间为 YYYY-MM-DD HH:mm
+export function formatDateTime(date) {
+	return `${formatDate(date)} ${formatTime(date)}`
 }
 
 // 判断是否是同一个月
