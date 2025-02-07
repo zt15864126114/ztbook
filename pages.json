@@ -1,0 +1,78 @@
+{
+	"pages": [
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "记账本"
+			}
+		},
+		{
+			"path": "pages/add/add",
+			"style": {
+				"navigationBarTitleText": "添加账目"
+			}
+		},
+		{
+			"path": "pages/list/list",
+			"style": {
+				"navigationBarTitleText": "账单明细",
+				"enablePullDownRefresh": true
+			}
+		},
+		{
+			"path": "pages/statistics/statistics",
+			"style": {
+				"navigationBarTitleText": "统计分析"
+			}
+		},
+		{
+			"path": "pages/settings/settings",
+			"style": {
+				"navigationBarTitleText": "设置"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "记账本",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	"uniIdRouter": {},
+	"easycom": {
+		"autoscan": true,
+		"custom": {
+		}
+	},
+	"tabBar": {
+		"color": "#999999",
+		"selectedColor": "#3498db",
+		"backgroundColor": "#ffffff",
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"text": "首页",
+				"iconPath": "/static/tabbar/home.png",
+				"selectedIconPath": "/static/tabbar/home-active.png"
+			},
+			{
+				"pagePath": "pages/list/list",
+				"text": "账单",
+				"iconPath": "/static/tabbar/list.png",
+				"selectedIconPath": "/static/tabbar/list-active.png"
+			},
+			{
+				"pagePath": "pages/statistics/statistics",
+				"text": "统计",
+				"iconPath": "/static/tabbar/stats.png",
+				"selectedIconPath": "/static/tabbar/stats-active.png"
+			},
+			{
+				"pagePath": "pages/settings/settings",
+				"text": "设置",
+				"iconPath": "/static/tabbar/settings.png",
+				"selectedIconPath": "/static/tabbar/settings-active.png"
+			}
+		]
+	}
+}
