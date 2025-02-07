@@ -100,6 +100,25 @@ export const useAccountStore = defineStore('account', {
     
     saveTags() {
       uni.setStorageSync('tags', this.tags)
+    },
+
+    // 添加编辑账单方法
+    editAccount(id, updates) {
+      const index = this.accounts.findIndex(item => item.id === id)
+      if (index !== -1) {
+        this.accounts[index] = {
+          ...this.accounts[index],
+          ...updates,
+          updateTime: new Date()
+        }
+        this.saveAccounts()
+      }
+    },
+
+    // 添加批量删除方法
+    deleteAccounts(ids) {
+      this.accounts = this.accounts.filter(item => !ids.includes(item.id))
+      this.saveAccounts()
     }
   },
   

@@ -1,0 +1,194 @@
+/**
+ * 这里是uni-app内置的常用样式变量
+ *
+ * uni-app 官方扩展插件及插件市场（https://ext.dcloud.net.cn）上很多三方插件均使用了这些样式变量
+ * 如果你是插件开发者，建议你使用scss预处理，并在插件代码中直接使用这些变量（无需 import 这个文件），方便用户通过搭积木的方式开发整体风格一致的App
+ *
+ */
+/**
+ * 如果你是App开发者（插件使用者），你可以通过修改这些变量来定制自己的插件主题，实现自定义主题功能
+ *
+ * 如果你的项目同样使用了scss预处理，你也可以直接在你的 scss 代码中使用如下变量，同时无需 import 这个文件
+ */
+/* 颜色变量 */
+/* 行为相关颜色 */
+/* 文字基本颜色 */
+/* 背景颜色 */
+/* 边框颜色 */
+/* 尺寸变量 */
+/* 文字尺寸 */
+/* 图片尺寸 */
+/* Border Radius */
+/* 水平间距 */
+/* 垂直间距 */
+/* 透明度 */
+/* 文章场景相关 */
+.container[data-v-1cf27b2a] {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 0.625rem;
+}
+.statistics-card[data-v-1cf27b2a] {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  border-radius: 0.625rem;
+  padding: 1.25rem 0.9375rem;
+  color: #fff;
+  margin-bottom: 0.625rem;
+}
+.statistics-card .month-overview[data-v-1cf27b2a] {
+  text-align: center;
+  margin-bottom: 0.9375rem;
+}
+.statistics-card .month-overview .month[data-v-1cf27b2a] {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+.statistics-card .month-overview .total-amount[data-v-1cf27b2a] {
+  font-size: 1.875rem;
+  font-weight: bold;
+  margin-top: 0.3125rem;
+  display: block;
+}
+.statistics-card .statistics-grid[data-v-1cf27b2a] {
+  display: flex;
+  justify-content: space-around;
+}
+.statistics-card .statistics-grid .grid-item[data-v-1cf27b2a] {
+  text-align: center;
+}
+.statistics-card .statistics-grid .grid-item .label[data-v-1cf27b2a] {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  display: block;
+}
+.statistics-card .statistics-grid .grid-item .value[data-v-1cf27b2a] {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-top: 0.3125rem;
+  display: block;
+}
+.section-title[data-v-1cf27b2a] {
+  font-size: 1rem;
+  font-weight: bold;
+  margin: 0.9375rem 0 0.625rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.section-title .more[data-v-1cf27b2a] {
+  font-size: 0.75rem;
+  color: #666;
+  font-weight: normal;
+}
+.category-stats[data-v-1cf27b2a] {
+  background-color: #fff;
+  border-radius: 0.625rem;
+  padding: 0.625rem;
+}
+.category-stats .category-list .category-item[data-v-1cf27b2a] {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.625rem;
+}
+.category-stats .category-list .category-item .category-info[data-v-1cf27b2a] {
+  display: flex;
+  align-items: center;
+}
+.category-stats .category-list .category-item .category-info .category-icon[data-v-1cf27b2a] {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.625rem;
+  font-size: 1rem;
+}
+.category-stats .category-list .category-item .category-info .category-detail .name[data-v-1cf27b2a] {
+  font-size: 0.875rem;
+  color: #333;
+}
+.category-stats .category-list .category-item .category-info .category-detail .amount[data-v-1cf27b2a] {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.125rem;
+}
+.category-stats .category-list .category-item .percentage[data-v-1cf27b2a] {
+  font-size: 0.875rem;
+  color: #666;
+}
+.recent-bills[data-v-1cf27b2a] {
+  background-color: #fff;
+  border-radius: 0.625rem;
+  padding: 0.625rem;
+  margin-top: 0.625rem;
+}
+.recent-bills .bill-list .bill-item[data-v-1cf27b2a] {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.625rem 0;
+  border-bottom: 0.03125rem solid #eee;
+}
+.recent-bills .bill-list .bill-item[data-v-1cf27b2a]:last-child {
+  border-bottom: none;
+}
+.recent-bills .bill-list .bill-item .left[data-v-1cf27b2a] {
+  display: flex;
+  align-items: center;
+}
+.recent-bills .bill-list .bill-item .left .category-icon[data-v-1cf27b2a] {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.625rem;
+  font-size: 1rem;
+}
+.recent-bills .bill-list .bill-item .left .bill-detail .category[data-v-1cf27b2a] {
+  font-size: 0.875rem;
+  color: #333;
+}
+.recent-bills .bill-list .bill-item .left .bill-detail .note[data-v-1cf27b2a] {
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 0.125rem;
+}
+.recent-bills .bill-list .bill-item .right[data-v-1cf27b2a] {
+  text-align: right;
+}
+.recent-bills .bill-list .bill-item .right .amount[data-v-1cf27b2a] {
+  font-size: 1rem;
+  color: #333;
+  font-weight: 500;
+}
+.recent-bills .bill-list .bill-item .right .time[data-v-1cf27b2a] {
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 0.125rem;
+  display: block;
+}
+.action-buttons[data-v-1cf27b2a] {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+}
+.action-buttons .add-btn[data-v-1cf27b2a] {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: #fff;
+  padding: 0.625rem 1.875rem;
+  border-radius: 3.125rem;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 0.125rem 0.375rem rgba(52, 152, 219, 0.3);
+}
+.action-buttons .add-btn .icon[data-v-1cf27b2a] {
+  font-size: 1.25rem;
+  margin-right: 0.3125rem;
+}

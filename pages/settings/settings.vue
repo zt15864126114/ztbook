@@ -3,7 +3,7 @@
 		<!-- 用户信息 -->
 		<view class="user-info">
 			<view class="avatar">
-				<image :src="userInfo.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+				<image :src="defaultAvatar" mode="aspectFill"></image>
 			</view>
 			<view class="info">
 				<text class="nickname">{{ userInfo.nickname || '点击登录' }}</text>
@@ -87,18 +87,22 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, getCurrentInstance } from 'vue'
 import { useAccountStore } from '@/stores/account'
 
+const { proxy } = getCurrentInstance()
 const accountStore = useAccountStore()
 const budgetPopup = ref(null)
 
 // 用户信息
 const userInfo = ref({
-	avatar: '',
 	nickname: '',
-	desc: ''
+	desc: '',
+	avatar: ''
 })
+
+// 默认头像
+const defaultAvatar = '/static/default-avatar.png'
 
 // 设置数据
 const budget = computed(() => accountStore.budget)
@@ -108,23 +112,22 @@ const cacheSize = ref('0.00MB')
 
 // 显示预算设置弹窗
 function showBudgetModal() {
-	budgetPopup.value.open()
-}
-
-// 设置预算
-function setBudget(value) {
-	const amount = Number(value)
-	if (isNaN(amount) || amount < 0) {
-		uni.showToast({
-			title: '请输入有效金额',
-			icon: 'none'
-		})
-		return
-	}
-	accountStore.setBudget(amount)
-	uni.showToast({
-		title: '设置成功',
-		icon: 'success'
+	uni.showModal({
+		title: '设置月度预算',
+		editable: true,
+		placeholderText: '请输入预算金额',
+		success: (res) => {
+			if (res.confirm && res.content) {
+				const amount = Number(res.content)
+				if (!isNaN(amount) && amount > 0) {
+					accountStore.setBudget(amount)
+					uni.showToast({
+						title: '设置成功',
+						icon: 'success'
+					})
+				}
+			}
+		}
 	})
 }
 
@@ -138,7 +141,22 @@ function toggleBudgetAlert(e) {
 function toggleDarkMode(e) {
 	darkMode.value = e.detail.value
 	uni.setStorageSync('darkMode', darkMode.value)
-	// 实现深色模式切换逻辑
+}
+
+// 导航到分类管理
+function navigateToCategories() {
+	uni.showToast({
+		title: '功能开发中',
+		icon: 'none'
+	})
+}
+
+// 导航到标签管理
+function navigateToTags() {
+	uni.showToast({
+		title: '功能开发中',
+		icon: 'none'
+	})
 }
 
 // 导出数据
@@ -147,14 +165,14 @@ function exportData() {
 		accounts: accountStore.accounts,
 		categories: accountStore.categories,
 		tags: accountStore.tags,
-		budget: accountStore.budget
+		budget: accountStore.budget,
+		exportTime: proxy.$dayjs().format('YYYY-MM-DD HH:mm:ss')
 	}
 	
-	const str = JSON.stringify(data)
-	// 实现数据导出逻辑，可以保存为文件或分享
+	const str = JSON.stringify(data, null, 2)
 	uni.showToast({
-		title: '导出成功',
-		icon: 'success'
+		title: '功能开发中',
+		icon: 'none'
 	})
 }
 
@@ -165,7 +183,7 @@ function clearCache() {
 		content: '确定要清除缓存吗？',
 		success: (res) => {
 			if (res.confirm) {
-				// 实现清除缓存逻辑
+				uni.clearStorageSync()
 				uni.showToast({
 					title: '清除成功',
 					icon: 'success'
@@ -178,15 +196,19 @@ function clearCache() {
 
 // 获取缓存大小
 function getCacheSize() {
-	// 实现获取缓存大小的逻辑
-	cacheSize.value = '0.00MB'
+	uni.getStorageInfo({
+		success: (res) => {
+			const size = (res.currentSize / 1024).toFixed(2)
+			cacheSize.value = size + 'MB'
+		}
+	})
 }
 
 // 显示关于页面
 function showAbout() {
 	uni.showModal({
 		title: '关于我们',
-		content: '这是一个简单的记账应用\n版本：1.0.0\n开发者：Your Name',
+		content: '这是一个简单的记账应用\n版本：1.0.0',
 		showCancel: false
 	})
 }

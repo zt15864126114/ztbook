@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "dayjs": "^1.11.13"
+    "@dcloudio/uni-ui": "^1.5.7",
+    "dayjs": "^1.11.10"
   }
 }

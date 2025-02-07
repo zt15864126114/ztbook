@@ -4,7 +4,7 @@
 		<view class="statistics-card">
 			<view class="month-overview">
 				<text class="month">{{ currentMonth }}月账单</text>
-				<text class="total-amount">¥{{ monthTotal }}</text>
+				<text class="total-amount">¥{{ monthlyExpense }}</text>
 			</view>
 			<view class="statistics-grid">
 				<view class="grid-item">
@@ -53,7 +53,7 @@
 			</view>
 			<view class="bill-list">
 				<view 
-					v-for="item in recentAccounts" 
+					v-for="item in recentBills" 
 					:key="item.id" 
 					class="bill-item"
 					@click="showBillDetail(item)"
@@ -69,7 +69,7 @@
 					</view>
 					<view class="right">
 						<text class="amount">-{{ item.amount }}</text>
-						<text class="time">{{ formatTime(item.createTime) }}</text>
+						<text class="time">{{ formatBillTime(item.createTime) }}</text>
 					</view>
 				</view>
 			</view>
@@ -77,7 +77,7 @@
 		
 		<!-- 添加按钮 -->
 		<view class="action-buttons">
-			<view class="add-btn" @click="navigateToAdd">
+			<view class="add-btn" @click="addBill">
 				<text class="icon">+</text>
 				<text>记一笔</text>
 			</view>
@@ -86,73 +86,91 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAccountStore } from '@/stores/account'
-import { onShow } from '@dcloudio/uni-app'
-import { 
-	formatTime, 
-	formatDateTime, 
-	getCurrentMonth,
-	getCurrentYear 
-} from '@/utils/date'
+import { formatDate, formatTime, getCurrentMonth, getCurrentYear } from '@/utils/date'
 
 const accountStore = useAccountStore()
+
+// 当前月份
 const currentMonth = ref(getCurrentMonth())
+const currentYear = ref(getCurrentYear())
 
-// 获取账目数据
-const accounts = computed(() => accountStore.accounts)
-const recentAccounts = computed(() => accounts.value.slice(-5).reverse())
+// 本月账单
+const monthlyBills = computed(() => {
+	return accountStore.accounts.filter(item => {
+		const date = new Date(item.createTime)
+		return date.getMonth() + 1 === currentMonth.value && 
+			   date.getFullYear() === currentYear.value
+	})
+})
 
-// 计算月度总支出
-const monthTotal = computed(() => {
-	const thisMonth = accounts.value.filter(item => 
-		dayjs(item.createTime).month() === currentMonth.value - 1
-	)
-	return thisMonth.reduce((total, item) => total + Number(item.amount), 0).toFixed(2)
+// 本月支出
+const monthlyExpense = computed(() => {
+	return monthlyBills.value
+		.reduce((total, item) => total + Number(item.amount), 0)
+		.toFixed(2)
+})
+
+// 预算进度
+const budgetProgress = computed(() => {
+	if (!accountStore.budget) return 0
+	return Math.min((monthlyExpense.value / accountStore.budget) * 100, 100)
+})
+
+// 最近账单
+const recentBills = computed(() => {
+	return [...accountStore.accounts]
+		.sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+		.slice(0, 5)
+})
+
+// 分类统计
+const categoryStats = computed(() => {
+	const stats = {}
+	monthlyBills.value.forEach(bill => {
+		if (!stats[bill.category]) {
+			stats[bill.category] = {
+				amount: 0,
+				count: 0,
+				color: getCategoryColor(bill.category),
+				icon: getCategoryIcon(bill.category)
+			}
+		}
+		stats[bill.category].amount += Number(bill.amount)
+		stats[bill.category].count += 1
+	})
+	
+	return Object.entries(stats)
+		.map(([category, data]) => ({
+			category,
+			...data,
+			percentage: ((data.amount / monthlyExpense.value) * 100).toFixed(1)
+		}))
+		.sort((a, b) => b.amount - a.amount)
 })
 
 // 计算日均支出
 const dailyAverage = computed(() => {
 	if (recordDays.value === 0) return '0.00'
-	return (Number(monthTotal.value) / recordDays.value).toFixed(2)
+	return (Number(monthlyExpense.value) / recordDays.value).toFixed(2)
 })
 
 // 计算最大支出
 const maxExpense = computed(() => {
-	const amounts = accounts.value.map(item => Number(item.amount))
+	const amounts = monthlyBills.value.map(item => Number(item.amount))
 	return Math.max(...amounts, 0).toFixed(2)
 })
 
 // 计算记账天数
 const recordDays = computed(() => {
 	const days = new Set(
-		accounts.value.map(item => dayjs(item.createTime).format('YYYY-MM-DD'))
+		monthlyBills.value.map(item => {
+			const date = new Date(item.createTime)
+			return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+		})
 	)
 	return days.size
-})
-
-// 计算分类统计
-const categoryStats = computed(() => {
-	const stats = {}
-	const total = Number(monthTotal.value)
-	
-	accounts.value.forEach(item => {
-		if (!stats[item.category]) {
-			stats[item.category] = {
-				name: item.category,
-				amount: 0,
-				icon: getCategoryIcon(item.category),
-				color: getCategoryColor(item.category)
-			}
-		}
-		stats[item.category].amount += Number(item.amount)
-	})
-	
-	return Object.values(stats).map(item => ({
-		...item,
-		amount: item.amount.toFixed(2),
-		percentage: total ? ((item.amount / total) * 100).toFixed(1) : '0.0'
-	}))
 })
 
 // 获取分类图标
@@ -179,9 +197,21 @@ function getCategoryColor(category) {
 	return colors[category] || '#999999'
 }
 
-// 导航函数
-function navigateToAdd() {
-	uni.navigateTo({ url: '/pages/add/add' })
+// 格式化账单时间
+function formatBillTime(time) {
+	return formatTime(time)
+}
+
+// 格式化账单日期
+function formatBillDate(date) {
+	return formatDate(date)
+}
+
+// 添加账单
+function addBill() {
+	uni.navigateTo({
+		url: '/pages/add/add'
+	})
 }
 
 function navigateToList() {
@@ -191,7 +221,7 @@ function navigateToList() {
 function showBillDetail(item) {
 	uni.showModal({
 		title: item.category,
-		content: `金额：¥${item.amount}\n备注：${item.note}\n时间：${dayjs(item.createTime).format('YYYY-MM-DD HH:mm')}`,
+		content: `金额：¥${item.amount}\n备注：${item.note}\n时间：${formatDateTime(item.createTime)}`,
 		showCancel: false
 	})
 }

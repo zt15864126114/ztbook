@@ -1,6 +1,7 @@
 import App from './App'
 import { createPinia } from 'pinia'
 import { createSSRApp } from 'vue'
+import dayjs from 'dayjs'
 
 // #ifndef VUE3
 import Vue from 'vue'
@@ -20,6 +21,9 @@ export function createApp() {
   // 引入 pinia
   const pinia = createPinia()
   app.use(pinia)
+  
+  // 全局挂载 dayjs
+  app.config.globalProperties.$dayjs = dayjs
   
   return {
     app
